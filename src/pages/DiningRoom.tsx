@@ -115,7 +115,7 @@ interface StockIssue {
 }
 
 interface Profile {
-  user_id: string;
+  id: string;
   full_name: string;
 }
 
@@ -213,7 +213,7 @@ export default function DiningRoom() {
         supabase.from('dishes').select('*').order('name'),
         supabase.from('technical_sheets').select('*'),
         supabase.from('items').select('id, name, unit, current_stock, units_per_package'),
-        supabase.from('profiles').select('user_id, full_name'),
+        supabase.from('profiles').select('id, full_name'),
       ]);
 
       if (tablesRes.error) throw tablesRes.error;
@@ -261,7 +261,7 @@ export default function DiningRoom() {
   };
 
   const getWaiterName = (waiterId: string) => {
-    const profile = profiles.find(p => p.user_id === waiterId);
+    const profile = profiles.find(p => p.id === waiterId);
     return profile?.full_name || t('audit.unknown_user');
   };
 

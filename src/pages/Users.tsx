@@ -91,8 +91,8 @@ export default function Users() {
 
       if (profilesError) throw profilesError;
 
-      const usersData: UserWithRole[] = (roles || []).map((role) => {
-        const profile = profiles?.find((p) => p.user_id === role.user_id);
+      const usersData: UserWithRole[] = (roles || []).map((role: any) => {
+        const profile = (profiles as any[])?.find((p: any) => p.id === role.user_id);
         return {
           id: role.user_id,
           email: profile?.email || 'Sem email',

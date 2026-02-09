@@ -70,7 +70,6 @@ interface Supplier {
 
 interface Profile {
   id: string;
-  user_id: string;
   full_name: string;
 }
 
@@ -318,7 +317,7 @@ export default function Inventory() {
 
   const getProfileName = (userId: string | null) => {
     if (!userId) return '-';
-    const profile = profiles.find((p) => p.user_id === userId);
+    const profile = profiles.find((p) => p.id === userId);
     return profile?.full_name || 'Usuário';
   };
 

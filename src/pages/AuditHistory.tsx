@@ -111,14 +111,14 @@ export default function AuditHistory() {
       // Fetch profiles for user emails - prioritize email, fallback to full_name
       const { data: profilesData } = await supabase
         .from('profiles')
-        .select('user_id, full_name, email')
-        .in('user_id', userIds);
+        .select('id, full_name, email')
+        .in('id', userIds);
 
-      // Map user_id to email (or full_name as fallback) for display in the audit table
+      // Map id to email (or full_name as fallback) for display in the audit table
       const profilesMap = new Map<string, string>();
-      profilesData?.forEach(p => {
+      (profilesData as any[])?.forEach((p: any) => {
         // Prefer email, fallback to full_name
-        profilesMap.set(p.user_id, p.email || p.full_name);
+        profilesMap.set(p.id, p.email || p.full_name);
       });
 
       // Enrich history with user emails and product names

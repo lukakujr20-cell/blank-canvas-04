@@ -153,6 +153,7 @@ export type Database = {
           name: string
           price: number | null
           restaurant_id: string | null
+          supplier_id: string | null
           unit: string
           units_per_package: number
         }
@@ -169,6 +170,7 @@ export type Database = {
           name: string
           price?: number | null
           restaurant_id?: string | null
+          supplier_id?: string | null
           unit?: string
           units_per_package?: number
         }
@@ -185,6 +187,7 @@ export type Database = {
           name?: string
           price?: number | null
           restaurant_id?: string | null
+          supplier_id?: string | null
           unit?: string
           units_per_package?: number
         }
@@ -194,6 +197,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "items_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
         ]
@@ -311,6 +321,7 @@ export type Database = {
           id: string
           instagram_handle: string | null
           restaurant_id: string | null
+          whatsapp: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -320,6 +331,7 @@ export type Database = {
           id: string
           instagram_handle?: string | null
           restaurant_id?: string | null
+          whatsapp?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -329,6 +341,7 @@ export type Database = {
           id?: string
           instagram_handle?: string | null
           restaurant_id?: string | null
+          whatsapp?: string | null
         }
         Relationships: []
       }
