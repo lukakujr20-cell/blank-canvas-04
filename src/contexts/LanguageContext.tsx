@@ -560,6 +560,33 @@ const translations: Record<Language, Record<string, string>> = {
 
     // Common - Kitchen role
     'common.cozinha': 'Cozinha',
+
+    // Export Data
+    'nav.export_data': 'Exportar Dados',
+    'export.title': 'Exportar Dados',
+    'export.subtitle': 'Exporte todos os dados do seu projeto em formato CSV',
+    'export.export_all': 'Exportar Tudo',
+    'export.export_csv': 'Exportar CSV',
+    'export.exporting': 'Exportando...',
+    'export.success': 'Exportação concluída!',
+    'export.error': 'Erro ao exportar',
+    'export.rows_exported': 'registros exportados',
+    'export.exported_successfully': 'Dados exportados com sucesso',
+    'export.tables': 'tabelas',
+    'export.database': 'Banco de Dados',
+    'export.database_desc': 'Exporte todas as tabelas do banco de dados (exercises, profiles, students, workout_items, workouts)',
+    'export.users': 'Usuários',
+    'export.users_desc': 'Exporte todos os usuários autenticados do sistema',
+    'export.storage': 'Armazenamento',
+    'export.storage_desc': 'Exporte informações de buckets e arquivos armazenados',
+    'export.edge_functions': 'Edge Functions',
+    'export.edge_functions_desc': 'Exporte a lista de Edge Functions configuradas',
+    'export.secrets': 'Secrets',
+    'export.secrets_desc': 'Exporte a lista de secrets configuradas (apenas nomes, sem valores)',
+    'export.logs': 'Logs',
+    'export.logs_desc': 'Exporte logs de atividade dos perfis do sistema',
+    'export.appointments': 'Agendamentos',
+    'export.appointments_desc': 'Exporte treinos e agendamentos dos alunos',
   },
   'es': {
     // Auth
@@ -1112,6 +1139,33 @@ const translations: Record<Language, Record<string, string>> = {
 
     // Common - Kitchen role
     'common.cozinha': 'Cocina',
+
+    // Export Data
+    'nav.export_data': 'Exportar Datos',
+    'export.title': 'Exportar Datos',
+    'export.subtitle': 'Exporte todos los datos de su proyecto en formato CSV',
+    'export.export_all': 'Exportar Todo',
+    'export.export_csv': 'Exportar CSV',
+    'export.exporting': 'Exportando...',
+    'export.success': '¡Exportación completada!',
+    'export.error': 'Error al exportar',
+    'export.rows_exported': 'registros exportados',
+    'export.exported_successfully': 'Datos exportados exitosamente',
+    'export.tables': 'tablas',
+    'export.database': 'Base de Datos',
+    'export.database_desc': 'Exporte todas las tablas de la base de datos',
+    'export.users': 'Usuarios',
+    'export.users_desc': 'Exporte todos los usuarios autenticados del sistema',
+    'export.storage': 'Almacenamiento',
+    'export.storage_desc': 'Exporte información de buckets y archivos almacenados',
+    'export.edge_functions': 'Edge Functions',
+    'export.edge_functions_desc': 'Exporte la lista de Edge Functions configuradas',
+    'export.secrets': 'Secrets',
+    'export.secrets_desc': 'Exporte la lista de secrets configuradas (solo nombres)',
+    'export.logs': 'Logs',
+    'export.logs_desc': 'Exporte logs de actividad de los perfiles del sistema',
+    'export.appointments': 'Citas',
+    'export.appointments_desc': 'Exporte entrenamientos y citas de los alumnos',
   },
   'en': {
     // Auth
@@ -1664,6 +1718,33 @@ const translations: Record<Language, Record<string, string>> = {
 
     // Common - Kitchen role
     'common.cozinha': 'Kitchen',
+
+    // Export Data
+    'nav.export_data': 'Export Data',
+    'export.title': 'Export Data',
+    'export.subtitle': 'Export all your project data in CSV format',
+    'export.export_all': 'Export All',
+    'export.export_csv': 'Export CSV',
+    'export.exporting': 'Exporting...',
+    'export.success': 'Export completed!',
+    'export.error': 'Export error',
+    'export.rows_exported': 'rows exported',
+    'export.exported_successfully': 'Data exported successfully',
+    'export.tables': 'tables',
+    'export.database': 'Database',
+    'export.database_desc': 'Export all database tables (exercises, profiles, students, workout_items, workouts)',
+    'export.users': 'Users',
+    'export.users_desc': 'Export all authenticated users from the system',
+    'export.storage': 'Storage',
+    'export.storage_desc': 'Export bucket and file information from storage',
+    'export.edge_functions': 'Edge Functions',
+    'export.edge_functions_desc': 'Export the list of configured Edge Functions',
+    'export.secrets': 'Secrets',
+    'export.secrets_desc': 'Export the list of configured secrets (names only, no values)',
+    'export.logs': 'Logs',
+    'export.logs_desc': 'Export activity logs from system profiles',
+    'export.appointments': 'Appointments',
+    'export.appointments_desc': 'Export workouts and student appointments',
   },
 };
 

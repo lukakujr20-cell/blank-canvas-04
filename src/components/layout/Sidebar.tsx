@@ -18,6 +18,7 @@ import {
   Globe,
   Building2,
   ChefHat,
+  Download,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
@@ -96,6 +97,12 @@ const navItems = [
     titleKey: 'nav.users',
     href: '/users',
     icon: Users,
+    roles: ['super_admin', 'host', 'admin'],
+  },
+  {
+    titleKey: 'nav.export_data',
+    href: '/export-data',
+    icon: Download,
     roles: ['super_admin', 'host', 'admin'],
   },
   {
