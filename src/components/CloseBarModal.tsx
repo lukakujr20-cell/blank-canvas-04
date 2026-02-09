@@ -151,12 +151,12 @@ export function CloseBarModal({ open, onOpenChange }: CloseBarModalProps) {
       if (waiterIds.length > 0) {
         const { data: profiles } = await supabase
           .from('profiles')
-          .select('user_id, full_name')
-          .in('user_id', waiterIds);
+          .select('id, full_name')
+          .in('id', waiterIds);
 
         salesByWaiter = waiterIds.map(waiterId => ({
           waiter_id: waiterId,
-          waiter_name: profiles?.find(p => p.user_id === waiterId)?.full_name || t('audit.unknown_user'),
+          waiter_name: (profiles as any[])?.find((p: any) => p.id === waiterId)?.full_name || t('audit.unknown_user'),
           total: waiterSales[waiterId].total,
           orders_count: waiterSales[waiterId].count,
         }));

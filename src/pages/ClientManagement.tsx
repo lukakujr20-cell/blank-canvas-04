@@ -148,14 +148,14 @@ export default function ClientManagement() {
       // Fetch profiles for all hosts
       const { data: hostProfiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('user_id, full_name, email, restaurant_id, created_at')
-        .in('user_id', hostUserIds);
+        .select('id, full_name, email, restaurant_id, created_at')
+        .in('id', hostUserIds);
 
       if (profilesError) throw profilesError;
 
       // Map restaurants with owner info
-      const restaurantsWithOwners: Restaurant[] = (restaurantsData || []).map(restaurant => {
-        const ownerProfile = hostProfiles?.find(p => p.user_id === restaurant.owner_id);
+      const restaurantsWithOwners: Restaurant[] = ((restaurantsData || []) as any[]).map((restaurant: any) => {
+        const ownerProfile = (hostProfiles as any[])?.find((p: any) => p.id === restaurant.owner_id);
         return {
           ...restaurant,
           status: restaurant.status as RestaurantStatus,
@@ -165,10 +165,10 @@ export default function ClientManagement() {
       });
 
       // Find hosts without restaurant
-      const hostsWithoutRest: HostWithoutRestaurant[] = (hostProfiles || [])
-        .filter(profile => !profile.restaurant_id && !restaurantsData?.some(r => r.owner_id === profile.user_id))
-        .map(profile => ({
-          user_id: profile.user_id,
+      const hostsWithoutRest: HostWithoutRestaurant[] = ((hostProfiles || []) as any[])
+        .filter((profile: any) => !profile.restaurant_id && !(restaurantsData as any[])?.some((r: any) => r.owner_id === profile.id))
+        .map((profile: any) => ({
+          user_id: profile.id,
           full_name: profile.full_name,
           email: profile.email || 'Sem email',
           created_at: profile.created_at || new Date().toISOString(),
@@ -194,8 +194,8 @@ export default function ClientManagement() {
       // Fetch all profiles for this restaurant (excluding host)
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('user_id, full_name, email, created_at')
-        .eq('restaurant_id', restaurantId);
+        .select('id, full_name, email, created_at')
+        .eq('restaurant_id', restaurantId as any);
 
       if (profilesError) throw profilesError;
 
@@ -207,20 +207,20 @@ export default function ClientManagement() {
       }
 
       // Fetch roles for these users
-      const userIds = profiles.map(p => p.user_id);
-      const { data: roles, error: rolesError } = await supabase
-        .from('user_roles')
+      const userIds = (profiles as any[]).map((p: any) => p.id);
+      const { data: roles, error: rolesError } = await (supabase
+        .from('user_roles') as any)
         .select('user_id, role')
         .in('user_id', userIds);
 
       if (rolesError) throw rolesError;
 
       // Combine profiles with roles, excluding hosts
-      const subordinates: Subordinate[] = profiles
-        .map(profile => {
-          const userRole = roles?.find(r => r.user_id === profile.user_id);
+      const subordinates: Subordinate[] = (profiles as any[])
+        .map((profile: any) => {
+          const userRole = (roles as any[])?.find((r: any) => r.user_id === profile.id);
           return {
-            user_id: profile.user_id,
+            user_id: profile.id,
             full_name: profile.full_name,
             email: profile.email || 'Sem email',
             role: userRole?.role || 'staff',
