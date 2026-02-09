@@ -20,37 +20,33 @@ Deno.serve(async (req) => {
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Client with user's token for auth verification
-    const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
 
     // Verify the user's token
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabaseUser.auth.getClaims(token);
-    
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user: requester }, error: userError } = await supabaseAdmin.auth.getUser(token);
+
+    if (userError || !requester) {
       return new Response(
         JSON.stringify({ error: "unauthorized", message: "Invalid token" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const requesterId = claimsData.claims.sub;
+    const requesterId = requester.id;
 
-    // Admin client for privileged operations
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
+    // Check if requester is super_admin via user_roles table
+    const { data: roleData, error: roleError } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", requesterId)
+      .eq("role", "super_admin")
+      .maybeSingle();
 
-    // Check if requester is super_admin
-    const { data: isSuperAdmin, error: superAdminError } = await supabaseAdmin.rpc("is_super_admin", {
-      _user_id: requesterId,
-    });
-
-    if (superAdminError || !isSuperAdmin) {
-      console.log("Permission check failed:", { isSuperAdmin, superAdminError });
+    if (roleError || !roleData) {
+      console.log("Permission check failed:", { roleData, roleError });
       return new Response(
         JSON.stringify({ error: "permission_denied", message: "Only super_admin can create restaurants" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -108,7 +104,6 @@ Deno.serve(async (req) => {
 
     if (restaurantError || !restaurant) {
       console.error("Error creating restaurant:", restaurantError);
-      // Rollback: delete the created user
       await supabaseAdmin.auth.admin.deleteUser(ownerId);
       return new Response(
         JSON.stringify({ error: "create_restaurant_failed", message: "Failed to create restaurant" }),
@@ -120,7 +115,7 @@ Deno.serve(async (req) => {
     const { error: profileError } = await supabaseAdmin
       .from("profiles")
       .insert({
-        user_id: ownerId,
+        id: ownerId,
         full_name: owner_name,
         email: owner_email,
         restaurant_id: restaurant.id,
@@ -131,15 +126,15 @@ Deno.serve(async (req) => {
     }
 
     // 4. Assign 'host' role to the owner
-    const { error: roleError } = await supabaseAdmin
+    const { error: assignRoleError } = await supabaseAdmin
       .from("user_roles")
       .insert({
         user_id: ownerId,
         role: "host",
       });
 
-    if (roleError) {
-      console.error("Error assigning role:", roleError);
+    if (assignRoleError) {
+      console.error("Error assigning role:", assignRoleError);
     }
 
     console.log(`Restaurant "${restaurant_name}" created successfully with owner ${owner_email}`);
