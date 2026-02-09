@@ -153,7 +153,6 @@ export default function Inventory() {
     try {
       const { error } = await supabase.from('categories').insert({
         name: newCategoryName.trim(),
-        created_by: user?.id,
       });
 
       if (error) throw error;
@@ -225,7 +224,6 @@ export default function Inventory() {
         min_stock: newItem.min_stock,
         units_per_package: newItem.units_per_package,
         supplier_id: newItem.supplier_id && newItem.supplier_id !== 'none' ? newItem.supplier_id : null,
-        created_by: user?.id,
       });
 
       if (error) throw error;
