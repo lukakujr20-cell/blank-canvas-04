@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import SQLSchemaSection from '@/components/SQLSchemaSection';
 
 type ExportStatus = 'idle' | 'loading' | 'success' | 'error';
 
@@ -299,6 +300,9 @@ export default function ExportData() {
             );
           })}
         </div>
+
+        {/* SQL Schema Section */}
+        <SQLSchemaSection />
       </div>
     </DashboardLayout>
   );

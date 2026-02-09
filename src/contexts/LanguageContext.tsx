@@ -587,6 +587,15 @@ const translations: Record<Language, Record<string, string>> = {
     'export.logs_desc': 'Exporte logs de atividade dos perfis do sistema',
     'export.appointments': 'Agendamentos',
     'export.appointments_desc': 'Exporte treinos e agendamentos dos alunos',
+    'export.sql_schema': 'SQL das Tabelas',
+    'export.sql_schema_desc': 'Copie o SQL para recriar as tabelas em outro banco de dados',
+    'export.copy_all_sql': 'Copiar Tudo',
+    'export.copy': 'Copiar',
+    'export.copied': 'Copiado!',
+    'export.sql_copied': 'SQL copiado!',
+    'export.sql_copied_desc': 'copiado para a área de transferência',
+    'export.sql_all_copied_desc': 'SQL de todas as tabelas copiado para a área de transferência',
+    'export.sql_copy_error': 'Erro ao copiar SQL',
   },
   'es': {
     // Auth
@@ -1166,6 +1175,15 @@ const translations: Record<Language, Record<string, string>> = {
     'export.logs_desc': 'Exporte logs de actividad de los perfiles del sistema',
     'export.appointments': 'Citas',
     'export.appointments_desc': 'Exporte entrenamientos y citas de los alumnos',
+    'export.sql_schema': 'SQL de las Tablas',
+    'export.sql_schema_desc': 'Copie el SQL para recrear las tablas en otra base de datos',
+    'export.copy_all_sql': 'Copiar Todo',
+    'export.copy': 'Copiar',
+    'export.copied': '¡Copiado!',
+    'export.sql_copied': '¡SQL copiado!',
+    'export.sql_copied_desc': 'copiado al portapapeles',
+    'export.sql_all_copied_desc': 'SQL de todas las tablas copiado al portapapeles',
+    'export.sql_copy_error': 'Error al copiar SQL',
   },
   'en': {
     // Auth
@@ -1745,6 +1763,15 @@ const translations: Record<Language, Record<string, string>> = {
     'export.logs_desc': 'Export activity logs from system profiles',
     'export.appointments': 'Appointments',
     'export.appointments_desc': 'Export workouts and student appointments',
+    'export.sql_schema': 'Table SQL',
+    'export.sql_schema_desc': 'Copy the SQL to recreate tables in another database',
+    'export.copy_all_sql': 'Copy All',
+    'export.copy': 'Copy',
+    'export.copied': 'Copied!',
+    'export.sql_copied': 'SQL copied!',
+    'export.sql_copied_desc': 'copied to clipboard',
+    'export.sql_all_copied_desc': 'All tables SQL copied to clipboard',
+    'export.sql_copy_error': 'Error copying SQL',
   },
 };
 
