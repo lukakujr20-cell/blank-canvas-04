@@ -27,6 +27,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -37,6 +39,8 @@ import {
   ChevronDown,
   ChevronRight,
   Package,
+  CalendarIcon,
+  Save,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { differenceInDays, parseISO, format } from 'date-fns';
@@ -76,7 +80,7 @@ interface Profile {
 const UNITS = ['kg', 'g', 'L', 'ml', 'un', 'cx', 'pct', 'dz'];
 
 export default function Inventory() {
-  const { user } = useAuth();
+  const { user, isHost } = useAuth();
   const { toast } = useToast();
   const [categories, setCategories] = useState<Category[]>([]);
   const [items, setItems] = useState<Item[]>([]);
@@ -84,6 +88,10 @@ export default function Inventory() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+
+  // Inline editing state for host/super_admin
+  const [inlineEdits, setInlineEdits] = useState<Map<string, { current_stock?: number; expiry_date?: string | null }>>(new Map());
+  const [savingInline, setSavingInline] = useState<Set<string>>(new Set());
 
   // Modal states
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
@@ -342,6 +350,93 @@ export default function Inventory() {
     setEditingItem(null);
     setNewItem({ name: '', category_id: categoryId, unit: 'un', min_stock: 0, supplier_id: '', units_per_package: 1 });
     setItemModalOpen(true);
+  };
+
+  // Inline editing handlers for host/super_admin
+  const handleInlineStockChange = (itemId: string, value: string) => {
+    const newStock = parseFloat(value) || 0;
+    setInlineEdits(prev => {
+      const updated = new Map(prev);
+      const existing = updated.get(itemId) || {};
+      updated.set(itemId, { ...existing, current_stock: newStock });
+      return updated;
+    });
+  };
+
+  const handleInlineExpiryChange = (itemId: string, date: Date | undefined) => {
+    const newExpiry = date ? format(date, 'yyyy-MM-dd') : null;
+    setInlineEdits(prev => {
+      const updated = new Map(prev);
+      const existing = updated.get(itemId) || {};
+      updated.set(itemId, { ...existing, expiry_date: newExpiry });
+      return updated;
+    });
+  };
+
+  const saveInlineEdit = async (itemId: string) => {
+    const edits = inlineEdits.get(itemId);
+    if (!edits) return;
+
+    const item = items.find(i => i.id === itemId);
+    if (!item) return;
+
+    setSavingInline(prev => new Set(prev).add(itemId));
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const newStock = edits.current_stock ?? item.current_stock;
+    const newExpiry = edits.expiry_date !== undefined ? edits.expiry_date : item.expiry_date;
+
+    try {
+      const { error } = await supabase
+        .from('items')
+        .update({
+          current_stock: newStock,
+          expiry_date: newExpiry,
+          last_count_date: today,
+          last_counted_by: user?.id,
+        })
+        .eq('id', itemId);
+
+      if (error) throw error;
+
+      const stockDiff = newStock - item.current_stock;
+      await supabase.from('stock_history').insert({
+        item_id: itemId,
+        previous_stock: item.current_stock,
+        new_stock: newStock,
+        previous_expiry: item.expiry_date,
+        new_expiry: newExpiry,
+        changed_by: user?.id,
+        movement_type: stockDiff > 0 ? 'entry' : stockDiff < 0 ? 'adjustment' : 'adjustment',
+        reason: 'Alteração direta na gestão de estoque',
+      });
+
+      toast({ title: 'Item atualizado com sucesso!' });
+      setInlineEdits(prev => {
+        const updated = new Map(prev);
+        updated.delete(itemId);
+        return updated;
+      });
+      fetchData();
+    } catch (error) {
+      console.error('Error saving inline edit:', error);
+      toast({ title: 'Erro ao salvar alteração', variant: 'destructive' });
+    } finally {
+      setSavingInline(prev => {
+        const updated = new Set(prev);
+        updated.delete(itemId);
+        return updated;
+      });
+    }
+  };
+
+  const getInlineStock = (item: Item) => {
+    const edits = inlineEdits.get(item.id);
+    return edits?.current_stock ?? item.current_stock;
+  };
+
+  const getInlineExpiry = (item: Item) => {
+    const edits = inlineEdits.get(item.id);
+    return edits?.expiry_date !== undefined ? edits.expiry_date : item.expiry_date;
   };
 
   return (
@@ -632,7 +727,18 @@ export default function Inventory() {
                                   <TableCell>{item.unit}</TableCell>
                                   <TableCell>{item.min_stock}</TableCell>
                                   <TableCell className={cn('font-medium', getStockCellClassName(item))}>
-                                    {item.current_stock}
+                                    {isHost ? (
+                                      <Input
+                                        type="number"
+                                        min="0"
+                                        step="0.1"
+                                        value={getInlineStock(item)}
+                                        onChange={(e) => handleInlineStockChange(item.id, e.target.value)}
+                                        className="h-8 w-20 bg-background"
+                                      />
+                                    ) : (
+                                      item.current_stock
+                                    )}
                                   </TableCell>
                                   <TableCell>
                                     {item.last_count_date
@@ -640,13 +746,52 @@ export default function Inventory() {
                                       : '-'}
                                   </TableCell>
                                   <TableCell>
-                                    {item.expiry_date
-                                      ? format(parseISO(item.expiry_date), 'dd/MM/yyyy', { locale: ptBR })
-                                      : '-'}
+                                    {isHost ? (
+                                      <Popover>
+                                        <PopoverTrigger asChild>
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className={cn(
+                                              'w-[130px] justify-start text-left font-normal h-8',
+                                              !getInlineExpiry(item) && 'text-muted-foreground'
+                                            )}
+                                          >
+                                            <CalendarIcon className="mr-1 h-3 w-3" />
+                                            {getInlineExpiry(item)
+                                              ? format(parseISO(getInlineExpiry(item)!), 'dd/MM/yyyy')
+                                              : 'Selecionar'}
+                                          </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                          <Calendar
+                                            mode="single"
+                                            selected={getInlineExpiry(item) ? parseISO(getInlineExpiry(item)!) : undefined}
+                                            onSelect={(date) => handleInlineExpiryChange(item.id, date)}
+                                            initialFocus
+                                            className="p-3 pointer-events-auto"
+                                          />
+                                        </PopoverContent>
+                                      </Popover>
+                                    ) : (
+                                      item.expiry_date
+                                        ? format(parseISO(item.expiry_date), 'dd/MM/yyyy', { locale: ptBR })
+                                        : '-'
+                                    )}
                                   </TableCell>
                                   <TableCell>{getProfileName(item.last_counted_by)}</TableCell>
                                   <TableCell>
                                     <div className="flex items-center gap-1">
+                                      {isHost && inlineEdits.has(item.id) && (
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          onClick={() => saveInlineEdit(item.id)}
+                                          disabled={savingInline.has(item.id)}
+                                        >
+                                          <Save className="h-4 w-4 text-primary" />
+                                        </Button>
+                                      )}
                                       <Button
                                         variant="ghost"
                                         size="icon"
