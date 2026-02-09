@@ -58,7 +58,7 @@ interface RestaurantTable {
 }
 
 interface Profile {
-  user_id: string;
+  id: string;
   full_name: string;
   email: string | null;
 }
@@ -104,8 +104,8 @@ export default function AuditDetailModal({
     
     setLoading(true);
     try {
-      const { data: orderData } = await supabase
-        .from('orders')
+      const { data: orderData } = await (supabase
+        .from('orders') as any)
         .select('*')
         .eq('id', entry.order_id)
         .single();
@@ -115,8 +115,8 @@ export default function AuditDetailModal({
 
         // Fetch table if exists
         if (orderData.table_id) {
-          const { data: tableData } = await supabase
-            .from('restaurant_tables')
+          const { data: tableData } = await (supabase
+            .from('restaurant_tables') as any)
             .select('*')
             .eq('id', orderData.table_id)
             .single();
@@ -127,9 +127,9 @@ export default function AuditDetailModal({
         const { data: profileData } = await supabase
           .from('profiles')
           .select('*')
-          .eq('user_id', orderData.waiter_id)
-          .single();
-        setWaiterProfile(profileData);
+          .eq('id', orderData.waiter_id)
+          .maybeSingle();
+        setWaiterProfile(profileData as any);
       }
     } catch (error) {
       console.error('Error fetching order details:', error);

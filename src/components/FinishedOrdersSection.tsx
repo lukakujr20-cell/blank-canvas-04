@@ -30,7 +30,7 @@ interface RestaurantTable {
 }
 
 interface Profile {
-  user_id: string;
+  id: string;
   full_name: string;
 }
 
@@ -73,15 +73,15 @@ export default function FinishedOrdersSection() {
       today.setHours(0, 0, 0, 0);
       
       const [ordersRes, tablesRes, profilesRes] = await Promise.all([
-        supabase
-          .from('orders')
+        (supabase
+          .from('orders') as any)
           .select('*')
           .in('status', ['closed', 'paid'])
           .gte('closed_at', today.toISOString())
           .order('closed_at', { ascending: false })
           .limit(20),
-        supabase.from('restaurant_tables').select('id, table_number'),
-        supabase.from('profiles').select('user_id, full_name'),
+        (supabase.from('restaurant_tables') as any).select('id, table_number'),
+        supabase.from('profiles').select('id, full_name'),
       ]);
 
       setOrders(ordersRes.data || []);
@@ -100,7 +100,7 @@ export default function FinishedOrdersSection() {
   };
 
   const getWaiterName = (waiterId: string) => {
-    return profiles.find(p => p.user_id === waiterId)?.full_name || t('audit.unknown_user');
+    return profiles.find(p => p.id === waiterId)?.full_name || t('audit.unknown_user');
   };
 
   const getOrderOrigin = (order: Order) => {

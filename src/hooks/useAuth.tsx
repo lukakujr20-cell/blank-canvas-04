@@ -29,8 +29,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUserRole = async (userId: string) => {
     try {
-      const { data, error } = await supabase
-        .from('user_roles')
+      const { data, error } = await (supabase
+        .from('user_roles') as any)
         .select('role')
         .eq('user_id', userId)
         .single();
@@ -51,14 +51,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data, error } = await supabase
         .from('profiles')
         .select('restaurant_id')
-        .eq('user_id', userId)
-        .single();
+        .eq('id', userId)
+        .maybeSingle();
       
       if (error) {
         console.error('Error fetching restaurant_id:', error);
         return null;
       }
-      return data?.restaurant_id;
+      return (data as any)?.restaurant_id;
     } catch (err) {
       console.error('Error fetching restaurant_id:', err);
       return null;
