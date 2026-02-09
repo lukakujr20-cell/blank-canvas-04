@@ -29,17 +29,21 @@ export default function Auth() {
   const [resetEmail, setResetEmail] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
   const [resetSent, setResetSent] = useState(false);
-  const { signIn, user, loading } = useAuth();
+  const { signIn, user, loading, role, isKitchen } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Redirect authenticated users to dashboard
+  // Redirect authenticated users based on role
   useEffect(() => {
-    if (!loading && user) {
-      navigate('/dashboard');
+    if (!loading && user && role) {
+      if (isKitchen) {
+        navigate('/kitchen');
+      } else {
+        navigate('/dashboard');
+      }
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, role, isKitchen, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,7 +73,7 @@ export default function Auth() {
       description: t('auth.welcome'),
     });
 
-    navigate('/dashboard');
+    // Navigation is handled by the useEffect above based on role
     setIsLoading(false);
   };
 

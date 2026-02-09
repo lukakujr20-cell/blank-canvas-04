@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -42,12 +43,20 @@ interface KitchenOrder {
 }
 
 export default function KitchenPanel() {
-  const { user } = useAuth();
+  const { user, role, isKitchen, isAdmin } = useAuth();
   const { t, language } = useLanguage();
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   const [loading, setLoading] = useState(true);
   const [kitchenOrders, setKitchenOrders] = useState<KitchenOrder[]>([]);
+
+  // Block staff from accessing kitchen panel
+  useEffect(() => {
+    if (role && !isKitchen && !isAdmin) {
+      navigate('/dashboard');
+    }
+  }, [role, isKitchen, isAdmin, navigate]);
 
   const getDateLocale = () => {
     switch (language) {
