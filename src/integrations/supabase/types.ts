@@ -310,6 +310,7 @@ export type Database = {
           full_name: string | null
           id: string
           instagram_handle: string | null
+          restaurant_id: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -318,6 +319,7 @@ export type Database = {
           full_name?: string | null
           id: string
           instagram_handle?: string | null
+          restaurant_id?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -326,6 +328,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           instagram_handle?: string | null
+          restaurant_id?: string | null
         }
         Relationships: []
       }
@@ -356,6 +359,30 @@ export type Database = {
           restaurant_id?: string | null
           status?: string
           table_number?: number
+        }
+        Relationships: []
+      }
+      restaurants: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          owner_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          owner_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          owner_id?: string
+          status?: string
         }
         Relationships: []
       }
@@ -470,6 +497,30 @@ export type Database = {
           },
         ]
       }
+      suppliers: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          restaurant_id: string | null
+          whatsapp: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          restaurant_id?: string | null
+          whatsapp?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          restaurant_id?: string | null
+          whatsapp?: string
+        }
+        Relationships: []
+      }
       technical_sheets: {
         Row: {
           created_at: string
@@ -508,6 +559,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       workout_items: {
         Row: {
