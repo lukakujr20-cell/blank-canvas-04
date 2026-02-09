@@ -734,6 +734,11 @@ export default function Inventory() {
                                         step="0.1"
                                         value={getInlineStock(item)}
                                         onChange={(e) => handleInlineStockChange(item.id, e.target.value)}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter' && inlineEdits.has(item.id)) {
+                                            saveInlineEdit(item.id);
+                                          }
+                                        }}
                                         className="h-8 w-20 bg-background"
                                       />
                                     ) : (
@@ -784,12 +789,14 @@ export default function Inventory() {
                                     <div className="flex items-center gap-1">
                                       {isHost && inlineEdits.has(item.id) && (
                                         <Button
-                                          variant="ghost"
-                                          size="icon"
+                                          variant="default"
+                                          size="sm"
                                           onClick={() => saveInlineEdit(item.id)}
                                           disabled={savingInline.has(item.id)}
+                                          className="h-8 px-3 gap-1"
                                         >
-                                          <Save className="h-4 w-4 text-primary" />
+                                          <Save className="h-4 w-4" />
+                                          Salvar
                                         </Button>
                                       )}
                                       <Button
