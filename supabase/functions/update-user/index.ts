@@ -7,13 +7,11 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Get the authorization header
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(
@@ -22,32 +20,23 @@ serve(async (req) => {
       );
     }
 
-    // Create Supabase client with user's token to verify identity
-    const supabaseUser = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      { global: { headers: { Authorization: authHeader } } }
-    );
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Verify the user's JWT and get claims
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
+
+    // Verify the user's token
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabaseUser.auth.getClaims(token);
-    
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user: requester }, error: userError } = await supabaseAdmin.auth.getUser(token);
+
+    if (userError || !requester) {
       return new Response(
         JSON.stringify({ error: "unauthorized", message: "Invalid token" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const requestingUserId = claimsData.claims.sub;
-
-    // Create admin client for privileged operations
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      { auth: { autoRefreshToken: false, persistSession: false } }
-    );
+    const requestingUserId = requester.id;
 
     // Get requesting user's role
     const { data: requestingUserRole, error: roleError } = await supabaseAdmin
@@ -65,7 +54,6 @@ serve(async (req) => {
 
     const requesterRole = requestingUserRole.role;
 
-    // Parse request body
     const { user_id, full_name, email, password, whatsapp, role } = await req.json();
 
     if (!user_id) {
@@ -91,36 +79,34 @@ serve(async (req) => {
 
     const targetRole = targetUserRole.role;
 
-    // HIERARCHY CHECK: Define role levels
-    const roleLevel = (r: string): number => {
-      switch (r) {
-        case 'host': return 3;
-        case 'admin': return 2;
-        case 'staff': return 1;
-        default: return 0;
+    // HIERARCHY CHECK - super_admin bypasses all checks
+    if (requesterRole !== 'super_admin') {
+      const roleLevel = (r: string): number => {
+        switch (r) {
+          case 'host': return 3;
+          case 'admin': return 2;
+          case 'staff': return 1;
+          case 'cozinha': return 1;
+          default: return 0;
+        }
+      };
+
+      const requesterLevel = roleLevel(requesterRole);
+      const targetLevel = roleLevel(targetRole);
+
+      if (requesterLevel <= targetLevel && requestingUserId !== user_id) {
+        return new Response(
+          JSON.stringify({ error: "permission_denied", message: "Cannot manage users at same or higher level" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
-    };
 
-    // Check if requester can manage target
-    // Host can manage everyone, Admin can only manage Staff
-    const requesterLevel = roleLevel(requesterRole);
-    const targetLevel = roleLevel(targetRole);
-
-    if (requesterLevel <= targetLevel && requestingUserId !== user_id) {
-      console.log("Permission denied: hierarchy violation");
-      return new Response(
-        JSON.stringify({ error: "permission_denied", message: "Cannot manage users at same or higher level" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Additional check: Admin cannot promote to Admin or Host
-    if (requesterRole === 'admin' && role && (role === 'admin' || role === 'host')) {
-      console.log("Permission denied: admin cannot promote to admin/host");
-      return new Response(
-        JSON.stringify({ error: "permission_denied", message: "Admin cannot assign admin or host roles" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      if (requesterRole === 'admin' && role && (role === 'admin' || role === 'host')) {
+        return new Response(
+          JSON.stringify({ error: "permission_denied", message: "Admin cannot assign admin or host roles" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     // Update profile if full_name or whatsapp provided
@@ -132,7 +118,7 @@ serve(async (req) => {
       const { error: profileError } = await supabaseAdmin
         .from("profiles")
         .update(updateData)
-        .eq("user_id", user_id);
+        .eq("id", user_id);
 
       if (profileError) {
         console.error("Profile update failed:", profileError.code || "unknown_error");
@@ -164,11 +150,11 @@ serve(async (req) => {
         );
       }
 
-      // Also update email in profiles table for audit display
+      // Also update email in profiles table
       await supabaseAdmin
         .from("profiles")
         .update({ email })
-        .eq("user_id", user_id);
+        .eq("id", user_id);
     }
 
     // Update password if provided

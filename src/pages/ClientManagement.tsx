@@ -39,6 +39,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Building2, UserPlus, Trash2, Pencil, AlertCircle, ChevronDown, ChevronRight, Users } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR, es, enUS } from 'date-fns/locale';
+import EditClientUserModal from '@/components/EditClientUserModal';
 
 type RestaurantStatus = 'active' | 'pending_payment' | 'suspended';
 
@@ -46,6 +47,7 @@ interface Subordinate {
   user_id: string;
   full_name: string;
   email: string;
+  whatsapp?: string;
   role: string;
   created_at: string;
 }
@@ -81,6 +83,8 @@ export default function ClientManagement() {
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const [expandedRestaurants, setExpandedRestaurants] = useState<Set<string>>(new Set());
   const [loadingSubordinates, setLoadingSubordinates] = useState<Set<string>>(new Set());
+  const [editUserModalOpen, setEditUserModalOpen] = useState(false);
+  const [userToEdit, setUserToEdit] = useState<{ user_id: string; full_name: string; email: string; whatsapp?: string; role: string } | null>(null);
 
   const [newRestaurant, setNewRestaurant] = useState({
     name: '',
@@ -194,7 +198,7 @@ export default function ClientManagement() {
       // Fetch all profiles for this restaurant (excluding host)
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, full_name, email, created_at')
+        .select('id, full_name, email, whatsapp, created_at')
         .eq('restaurant_id', restaurantId as any);
 
       if (profilesError) throw profilesError;
@@ -223,6 +227,7 @@ export default function ClientManagement() {
             user_id: profile.id,
             full_name: profile.full_name,
             email: profile.email || 'Sem email',
+            whatsapp: profile.whatsapp || '',
             role: userRole?.role || 'staff',
             created_at: profile.created_at || new Date().toISOString(),
           };
@@ -570,12 +575,28 @@ export default function ClientManagement() {
                                 <Button
                                   variant="ghost"
                                   size="icon"
+                                  title={t('clients.edit_status')}
                                   onClick={() => {
                                     setSelectedRestaurant(restaurant);
                                     setEditModalOpen(true);
                                   }}
                                 >
                                   <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setUserToEdit({
+                                      user_id: restaurant.owner_id,
+                                      full_name: restaurant.owner_name || '',
+                                      email: restaurant.owner_email || '',
+                                      role: 'host',
+                                    });
+                                    setEditUserModalOpen(true);
+                                  }}
+                                >
+                                  {t('users.edit_user')}
                                 </Button>
                                 <Button
                                   variant="ghost"
@@ -607,6 +628,7 @@ export default function ClientManagement() {
                                           <TableHead className="text-xs">{t('users.email')}</TableHead>
                                           <TableHead className="text-xs">{t('users.role')}</TableHead>
                                           <TableHead className="text-xs">{t('clients.created_at')}</TableHead>
+                                          <TableHead className="text-xs w-[80px]"></TableHead>
                                         </TableRow>
                                       </TableHeader>
                                       <TableBody>
@@ -619,6 +641,25 @@ export default function ClientManagement() {
                                               {format(parseISO(sub.created_at), 'dd/MM/yyyy', {
                                                 locale: getDateLocale(),
                                               })}
+                                            </TableCell>
+                                            <TableCell>
+                                              <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => {
+                                                  setUserToEdit({
+                                                    user_id: sub.user_id,
+                                                    full_name: sub.full_name,
+                                                    email: sub.email,
+                                                    whatsapp: sub.whatsapp,
+                                                    role: sub.role,
+                                                  });
+                                                  setEditUserModalOpen(true);
+                                                }}
+                                              >
+                                                <Pencil className="h-3 w-3 mr-1" />
+                                                {t('users.edit_user')}
+                                              </Button>
                                             </TableCell>
                                           </TableRow>
                                         ))}
@@ -689,6 +730,20 @@ export default function ClientManagement() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Edit User Modal */}
+      <EditClientUserModal
+        open={editUserModalOpen}
+        onOpenChange={setEditUserModalOpen}
+        user={userToEdit}
+        onSuccess={() => {
+          fetchRestaurantsAndHosts();
+          // Refresh subordinates for expanded restaurants
+          expandedRestaurants.forEach(id => {
+            fetchSubordinates(id);
+          });
+        }}
+      />
     </DashboardLayout>
   );
 }

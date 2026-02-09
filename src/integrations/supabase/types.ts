@@ -399,6 +399,50 @@ export type Database = {
         }
         Relationships: []
       }
+      stock_batches: {
+        Row: {
+          batch_note: string | null
+          created_at: string
+          created_by: string | null
+          entry_date: string
+          expiry_date: string | null
+          id: string
+          item_id: string
+          quantity: number
+          restaurant_id: string | null
+        }
+        Insert: {
+          batch_note?: string | null
+          created_at?: string
+          created_by?: string | null
+          entry_date?: string
+          expiry_date?: string | null
+          id?: string
+          item_id: string
+          quantity?: number
+          restaurant_id?: string | null
+        }
+        Update: {
+          batch_note?: string | null
+          created_at?: string
+          created_by?: string | null
+          entry_date?: string
+          expiry_date?: string | null
+          id?: string
+          item_id?: string
+          quantity?: number
+          restaurant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_batches_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stock_history: {
         Row: {
           changed_by: string
@@ -692,7 +736,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_restaurant_id: { Args: { _user_id: string }; Returns: string }
+      has_role: { Args: { _role: string; _user_id: string }; Returns: boolean }
+      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
