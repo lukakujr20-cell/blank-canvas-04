@@ -174,7 +174,7 @@ serve(async (req) => {
 
     // Create profile with email, restaurant_id and whatsapp
     const { error: profileError } = await supabaseAdmin.from("profiles").insert({
-      user_id: authData.user.id,
+      id: authData.user.id,
       full_name,
       email,
       whatsapp: whatsapp || null,
