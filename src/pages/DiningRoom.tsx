@@ -275,8 +275,17 @@ export default function DiningRoom() {
     setTableStatus(table.status);
     
     const existingOrder = getTableOrder(table.id);
-    setGuestCount(existingOrder?.guest_count || table.capacity);
-    setTableOptionsOpen(true);
+    if (existingOrder) {
+      // Occupied table with order → open POS directly
+      setCurrentOrder(existingOrder);
+      setCurrentOrderItems(getOrderItems(existingOrder.id));
+      setDishQuantities({});
+      setPosInterfaceOpen(true);
+    } else {
+      // Free/reserved table → show options
+      setGuestCount(table.capacity);
+      setTableOptionsOpen(true);
+    }
   };
 
   const handleTableStatusChange = async () => {
@@ -311,7 +320,7 @@ export default function DiningRoom() {
           setCurrentOrderItems([]);
           setDishQuantities({});
           setTableOptionsOpen(false);
-          setOrderModalOpen(true);
+          setPosInterfaceOpen(true);
         } else {
           // Update guest count
           await supabase
@@ -323,7 +332,7 @@ export default function DiningRoom() {
           setCurrentOrderItems(getOrderItems(existingOrder.id));
           setDishQuantities({});
           setTableOptionsOpen(false);
-          setOrderModalOpen(true);
+          setPosInterfaceOpen(true);
         }
       } else {
         // Update table status only (free or reserved)
@@ -384,7 +393,7 @@ export default function DiningRoom() {
       setSelectedTable(null);
       setCounterOrderOpen(false);
       setCounterCustomerName('');
-      setOrderModalOpen(true);
+      setPosInterfaceOpen(true);
       fetchData();
     } catch (error) {
       console.error('Error creating counter order:', error);
