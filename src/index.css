@@ -1,0 +1,236 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Source+Serif+Pro:wght@400;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;700&display=swap");
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Sistema de cores para controle de estoque */
+    --background: 60 4% 95%;
+    --foreground: 24 9% 10%;
+
+    --card: 60 9% 97%;
+    --card-foreground: 24 9% 10%;
+
+    --popover: 20 5% 90%;
+    --popover-foreground: 24 9% 10%;
+
+    /* Azul profissional para ações principais */
+    --primary: 37 92% 50%;
+    --primary-foreground: 47 100% 96%;
+
+    /* Cinza neutro para secundário */
+    --secondary: 24 5% 44%;
+    --secondary-foreground: 60 9% 97%;
+
+    --muted: 23 5% 82%;
+    --muted-foreground: 24 9% 10%;
+
+    --accent: 47 100% 96%;
+    --accent-foreground: 37 92% 50%;
+
+    /* Vermelho para alertas de vencimento */
+    --destructive: 0 72% 50%;
+    --destructive-foreground: 0 85% 97%;
+
+    /* Alerta amarelo para estoque baixo */
+    --warning: 45 93% 47%;
+    --warning-foreground: 45 93% 15%;
+    --warning-light: 45 100% 90%;
+
+    /* Alerta vermelho para vencimento próximo */
+    --danger-light: 0 100% 95%;
+    --danger: 0 84% 60%;
+
+    /* Sucesso */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    --success-light: 142 76% 95%;
+
+    /* Host/Premium accent */
+    --host: 43 96% 56%;
+    --host-foreground: 43 96% 15%;
+    --host-light: 43 96% 90%;
+
+    /* Expired/Vencido - Roxo escuro */
+    --expired: 271 76% 40%;
+    --expired-foreground: 0 0% 100%;
+    --expired-light: 271 76% 95%;
+
+    /* Expiring Soon/Vencimento Próximo - Laranja */
+    --expiring: 25 95% 53%;
+    --expiring-foreground: 0 0% 100%;
+    --expiring-light: 25 100% 92%;
+
+    --border: 23 5% 82%;
+    --input: 23 5% 82%;
+    --ring: 37 92% 50%;
+
+    --radius: 1rem;
+
+    /* Sidebar */
+    --sidebar-background: 220 20% 15%;
+    --sidebar-foreground: 24 9% 10%;
+    --sidebar-primary: 37 92% 50%;
+    --sidebar-primary-foreground: 47 100% 96%;
+    --sidebar-accent: 24 5% 44%;
+    --sidebar-accent-foreground: 60 9% 97%;
+    --sidebar-border: 23 5% 82%;
+    --sidebar-ring: 37 92% 50%;
+
+    /* Tabelas */
+    --table-header: 217 91% 97%;
+    --table-row-alt: 220 14% 98%;
+    --table-border: 220 13% 91%;
+    --chart-1: 45 96% 64%;
+    --chart-2: 47 95% 53%;
+    --chart-3: 43 96% 56%;
+    --chart-4: 37 92% 50%;
+    --chart-5: 24 5% 44%;
+    --sidebar: 60 9% 97%;
+    --font-sans: 'Source Sans Pro', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+    --font-serif: 'Source Serif Pro', ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+    --font-mono: 'Source Code Pro', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
+    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
+    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
+    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+    --tracking-normal: 0em;
+    --spacing: 0.25rem;
+  }
+
+  .dark {
+    --background: 24 9% 10%;
+    --foreground: 60 9% 97%;
+
+    --card: 12 6% 15%;
+    --card-foreground: 60 9% 97%;
+
+    --popover: 30 6% 25%;
+    --popover-foreground: 60 9% 97%;
+
+    --primary: 43 96% 56%;
+    --primary-foreground: 20 91% 14%;
+
+    --secondary: 24 5% 44%;
+    --secondary-foreground: 60 9% 97%;
+
+    --muted: 24 5% 44%;
+    --muted-foreground: 60 9% 97%;
+
+    --accent: 25 83% 14%;
+    --accent-foreground: 47 95% 53%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 85% 97%;
+
+    --warning: 45 93% 47%;
+    --warning-foreground: 45 93% 15%;
+    --warning-light: 45 70% 20%;
+
+    --danger-light: 0 70% 20%;
+    --danger: 0 84% 60%;
+
+    --success: 142 76% 40%;
+    --success-foreground: 0 0% 100%;
+    --success-light: 142 50% 15%;
+
+    /* Host/Premium accent */
+    --host: 43 96% 56%;
+    --host-foreground: 43 96% 15%;
+    --host-light: 43 50% 20%;
+
+    /* Expired/Vencido - Roxo escuro */
+    --expired: 271 76% 50%;
+    --expired-foreground: 0 0% 100%;
+    --expired-light: 271 50% 20%;
+
+    /* Expiring Soon/Vencimento Próximo - Laranja */
+    --expiring: 25 95% 53%;
+    --expiring-foreground: 0 0% 100%;
+    --expiring-light: 25 50% 20%;
+
+    --border: 33 5% 32%;
+    --input: 33 5% 32%;
+    --ring: 43 96% 56%;
+
+    --sidebar-background: 220 20% 8%;
+    --sidebar-foreground: 60 9% 97%;
+    --sidebar-primary: 43 96% 56%;
+    --sidebar-primary-foreground: 20 91% 14%;
+    --sidebar-accent: 47 95% 53%;
+    --sidebar-accent-foreground: 25 83% 14%;
+    --sidebar-border: 33 5% 32%;
+    --sidebar-ring: 43 96% 56%;
+
+    --table-header: 220 20% 18%;
+    --table-row-alt: 220 20% 12%;
+    --table-border: 220 20% 22%;
+    --chart-1: 45 96% 64%;
+    --chart-2: 48 96% 76%;
+    --chart-3: 43 96% 56%;
+    --chart-4: 37 92% 50%;
+    --chart-5: 33 5% 32%;
+    --sidebar: 12 6% 15%;
+    --radius: 0rem;
+    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
+    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
+    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
+    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+}
+
+@layer utilities {
+  .stock-warning {
+    @apply bg-[hsl(var(--warning-light))];
+  }
+
+  .stock-danger {
+    @apply bg-[hsl(var(--danger-light))];
+  }
+
+  .stock-success {
+    @apply bg-[hsl(var(--success-light))];
+  }
+}
+
+/* Animações suaves */
+@layer utilities {
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}

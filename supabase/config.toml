@@ -1,0 +1,16 @@
+project_id = "fregellfimdkphopzuce"
+
+[functions.sync-profile-emails]
+verify_jwt = false
+
+[functions.create-user]
+verify_jwt = false
+
+[functions.update-user]
+verify_jwt = false
+
+[functions.delete-user]
+verify_jwt = false
+
+[functions.create-restaurant]
+verify_jwt = false
