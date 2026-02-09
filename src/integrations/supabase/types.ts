@@ -14,6 +14,93 @@ export type Database = {
   }
   public: {
     Tables: {
+      bar_closings: {
+        Row: {
+          closed_at: string
+          closed_by: string
+          consumed_products: Json | null
+          created_at: string
+          expired_items: Json | null
+          id: string
+          orders_summary: Json | null
+          sales_by_waiter: Json | null
+          total_orders: number
+          total_revenue: number
+        }
+        Insert: {
+          closed_at?: string
+          closed_by: string
+          consumed_products?: Json | null
+          created_at?: string
+          expired_items?: Json | null
+          id?: string
+          orders_summary?: Json | null
+          sales_by_waiter?: Json | null
+          total_orders?: number
+          total_revenue?: number
+        }
+        Update: {
+          closed_at?: string
+          closed_by?: string
+          consumed_products?: Json | null
+          created_at?: string
+          expired_items?: Json | null
+          id?: string
+          orders_summary?: Json | null
+          sales_by_waiter?: Json | null
+          total_orders?: number
+          total_revenue?: number
+        }
+        Relationships: []
+      }
+      categories: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          restaurant_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          restaurant_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          restaurant_id?: string | null
+        }
+        Relationships: []
+      }
+      dishes: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          price: number
+          restaurant_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          price?: number
+          restaurant_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          price?: number
+          restaurant_id?: string | null
+        }
+        Relationships: []
+      }
       exercises: {
         Row: {
           coach_id: string | null
@@ -52,6 +139,169 @@ export type Database = {
           },
         ]
       }
+      items: {
+        Row: {
+          category_id: string | null
+          created_at: string
+          current_stock: number | null
+          direct_sale: boolean | null
+          expiry_date: string | null
+          id: string
+          last_count_date: string | null
+          last_counted_by: string | null
+          min_stock: number
+          name: string
+          price: number | null
+          restaurant_id: string | null
+          unit: string
+          units_per_package: number
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string
+          current_stock?: number | null
+          direct_sale?: boolean | null
+          expiry_date?: string | null
+          id?: string
+          last_count_date?: string | null
+          last_counted_by?: string | null
+          min_stock?: number
+          name: string
+          price?: number | null
+          restaurant_id?: string | null
+          unit?: string
+          units_per_package?: number
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string
+          current_stock?: number | null
+          direct_sale?: boolean | null
+          expiry_date?: string | null
+          id?: string
+          last_count_date?: string | null
+          last_counted_by?: string | null
+          min_stock?: number
+          name?: string
+          price?: number | null
+          restaurant_id?: string | null
+          unit?: string
+          units_per_package?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_items: {
+        Row: {
+          created_at: string
+          dish_id: string | null
+          dish_name: string
+          id: string
+          notes: string | null
+          order_id: string
+          quantity: number
+          sent_at: string | null
+          status: string
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          dish_id?: string | null
+          dish_name: string
+          id?: string
+          notes?: string | null
+          order_id: string
+          quantity?: number
+          sent_at?: string | null
+          status?: string
+          unit_price?: number
+        }
+        Update: {
+          created_at?: string
+          dish_id?: string | null
+          dish_name?: string
+          id?: string
+          notes?: string | null
+          order_id?: string
+          quantity?: number
+          sent_at?: string | null
+          status?: string
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_dish_id_fkey"
+            columns: ["dish_id"]
+            isOneToOne: false
+            referencedRelation: "dishes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          closed_at: string | null
+          created_at: string
+          customer_name: string | null
+          guest_count: number | null
+          id: string
+          opened_at: string | null
+          restaurant_id: string | null
+          status: string
+          table_id: string | null
+          total: number | null
+          waiter_id: string
+        }
+        Insert: {
+          closed_at?: string | null
+          created_at?: string
+          customer_name?: string | null
+          guest_count?: number | null
+          id?: string
+          opened_at?: string | null
+          restaurant_id?: string | null
+          status?: string
+          table_id?: string | null
+          total?: number | null
+          waiter_id: string
+        }
+        Update: {
+          closed_at?: string | null
+          created_at?: string
+          customer_name?: string | null
+          guest_count?: number | null
+          id?: string
+          opened_at?: string | null
+          restaurant_id?: string | null
+          status?: string
+          table_id?: string | null
+          total?: number | null
+          waiter_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_table_id_fkey"
+            columns: ["table_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_tables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -78,6 +328,103 @@ export type Database = {
           instagram_handle?: string | null
         }
         Relationships: []
+      }
+      restaurant_tables: {
+        Row: {
+          capacity: number
+          created_at: string
+          current_order_id: string | null
+          id: string
+          restaurant_id: string | null
+          status: string
+          table_number: number
+        }
+        Insert: {
+          capacity?: number
+          created_at?: string
+          current_order_id?: string | null
+          id?: string
+          restaurant_id?: string | null
+          status?: string
+          table_number: number
+        }
+        Update: {
+          capacity?: number
+          created_at?: string
+          current_order_id?: string | null
+          id?: string
+          restaurant_id?: string | null
+          status?: string
+          table_number?: number
+        }
+        Relationships: []
+      }
+      stock_history: {
+        Row: {
+          changed_by: string
+          created_at: string
+          id: string
+          item_id: string
+          movement_type: string
+          new_expiry: string | null
+          new_stock: number
+          order_id: string | null
+          order_item_id: string | null
+          previous_expiry: string | null
+          previous_stock: number | null
+          reason: string | null
+        }
+        Insert: {
+          changed_by: string
+          created_at?: string
+          id?: string
+          item_id: string
+          movement_type?: string
+          new_expiry?: string | null
+          new_stock: number
+          order_id?: string | null
+          order_item_id?: string | null
+          previous_expiry?: string | null
+          previous_stock?: number | null
+          reason?: string | null
+        }
+        Update: {
+          changed_by?: string
+          created_at?: string
+          id?: string
+          item_id?: string
+          movement_type?: string
+          new_expiry?: string | null
+          new_stock?: number
+          order_id?: string | null
+          order_item_id?: string | null
+          previous_expiry?: string | null
+          previous_stock?: number | null
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_history_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_history_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_history_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "order_items"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       students: {
         Row: {
@@ -119,6 +466,45 @@ export type Database = {
             columns: ["coach_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      technical_sheets: {
+        Row: {
+          created_at: string
+          dish_id: string
+          id: string
+          item_id: string
+          quantity_per_sale: number
+        }
+        Insert: {
+          created_at?: string
+          dish_id: string
+          id?: string
+          item_id: string
+          quantity_per_sale?: number
+        }
+        Update: {
+          created_at?: string
+          dish_id?: string
+          id?: string
+          item_id?: string
+          quantity_per_sale?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "technical_sheets_dish_id_fkey"
+            columns: ["dish_id"]
+            isOneToOne: false
+            referencedRelation: "dishes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "technical_sheets_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
             referencedColumns: ["id"]
           },
         ]

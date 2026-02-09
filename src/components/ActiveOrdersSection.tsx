@@ -39,7 +39,7 @@ interface RestaurantTable {
 }
 
 interface Profile {
-  user_id: string;
+  id: string;
   full_name: string;
 }
 
@@ -81,10 +81,10 @@ export default function ActiveOrdersSection() {
   const fetchData = async () => {
     try {
       const [ordersRes, orderItemsRes, tablesRes, profilesRes] = await Promise.all([
-        supabase.from('orders').select('*').eq('status', 'open').order('opened_at', { ascending: false }),
-        supabase.from('order_items').select('*'),
-        supabase.from('restaurant_tables').select('id, table_number'),
-        supabase.from('profiles').select('user_id, full_name'),
+        (supabase.from('orders') as any).select('*').eq('status', 'open').order('opened_at', { ascending: false }),
+        (supabase.from('order_items') as any).select('*'),
+        (supabase.from('restaurant_tables') as any).select('id, table_number'),
+        supabase.from('profiles').select('id, full_name'),
       ]);
 
       setOrders(ordersRes.data || []);
@@ -104,7 +104,7 @@ export default function ActiveOrdersSection() {
   };
 
   const getWaiterName = (waiterId: string) => {
-    return profiles.find(p => p.user_id === waiterId)?.full_name || t('audit.unknown_user');
+    return profiles.find(p => p.id === waiterId)?.full_name || t('audit.unknown_user');
   };
 
   const getOrderItemsList = (orderId: string) => {
