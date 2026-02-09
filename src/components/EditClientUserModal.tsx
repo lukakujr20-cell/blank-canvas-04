@@ -170,7 +170,7 @@ export default function EditClientUserModal({
                 <SelectItem value="host">{t('users.host_desc')}</SelectItem>
                 <SelectItem value="admin">{t('users.admin_desc')}</SelectItem>
                 <SelectItem value="staff">{t('users.staff_desc')}</SelectItem>
-                <SelectItem value="cozinha">{t('users.kitchen_desc') || 'Cozinha'}</SelectItem>
+                <SelectItem value="cozinha">{t('users.cozinha_desc')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
