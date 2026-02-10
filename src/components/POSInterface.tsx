@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -29,6 +30,13 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+} from '@/components/ui/drawer';
+import {
   X,
   Plus,
   Minus,
@@ -42,6 +50,7 @@ import {
   Wine,
   AlertTriangle,
   ChevronLeft,
+  ChevronRight,
   Printer,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -119,13 +128,6 @@ interface POSInterfaceProps {
   currentTotal: number;
 }
 
-const categoryIcons: Record<string, React.ReactNode> = {
-  pratos: <UtensilsCrossed className="h-5 w-5" />,
-  bebidas: <Coffee className="h-5 w-5" />,
-  sobremesas: <IceCream className="h-5 w-5" />,
-  vinhos: <Wine className="h-5 w-5" />,
-};
-
 export default function POSInterface({
   open,
   onClose,
@@ -140,6 +142,7 @@ export default function POSInterface({
   const { t } = useLanguage();
   const { formatCurrency } = useCurrency();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [directSaleItems, setDirectSaleItems] = useState<Item[]>([]);
@@ -150,12 +153,12 @@ export default function POSInterface({
   const [loading, setLoading] = useState(true);
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedTypeFilter, setSelectedTypeFilter] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [stockIssues, setStockIssues] = useState<StockIssue[]>([]);
   const [stockAlertOpen, setStockAlertOpen] = useState(false);
   const [sending, setSending] = useState(false);
+  const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -186,7 +189,6 @@ export default function POSInterface({
       setPosCategories(posCategoriesRes.data || []);
       setTechnicalSheets(sheetsRes.data || []);
 
-      // Filter direct sale items
       const directSale = (itemsRes.data || []).filter(
         (item) => item.direct_sale && item.price && item.price > 0
       );
@@ -206,6 +208,7 @@ export default function POSInterface({
       description: d.description,
       price: d.price,
       type: 'dish' as const,
+      pos_category_id: d.pos_category_id,
     })),
     ...directSaleItems.map((i) => ({
       id: i.id,
@@ -213,10 +216,11 @@ export default function POSInterface({
       description: null,
       price: i.price || 0,
       type: 'item' as const,
+      pos_category_id: i.pos_category_id,
     })),
   ];
 
-  // Get unique POS category IDs from products for dynamic tabs
+  // Get POS categories that have products
   const productPosCategories = (() => {
     const catIds = new Set<string>();
     for (const d of dishes) {
@@ -232,22 +236,11 @@ export default function POSInterface({
     const matchesSearch =
       !searchQuery ||
       product.name.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    // Type filter (dishes vs direct sale)
-    if (selectedTypeFilter === 'dishes' && product.type !== 'dish') return false;
-    if (selectedTypeFilter === 'direct' && product.type !== 'item') return false;
-    
-    // Category filter
+
     if (selectedCategory) {
-      if (product.type === 'dish') {
-        const dish = dishes.find(d => d.id === product.id);
-        if (dish?.pos_category_id !== selectedCategory) return false;
-      } else {
-        const item = directSaleItems.find(i => i.id === product.id);
-        if (item?.pos_category_id !== selectedCategory) return false;
-      }
+      if (product.pos_category_id !== selectedCategory) return false;
     }
-    
+
     return matchesSearch;
   });
 
@@ -292,7 +285,6 @@ export default function POSInterface({
   };
 
   const addToCart = (product: typeof allProducts[0]) => {
-    // Check stock
     let issues: StockIssue[] = [];
     const existingCartItem = cart.find(
       (c) =>
@@ -352,7 +344,6 @@ export default function POSInterface({
         return prev.filter((c) => c.id !== cartId);
       }
 
-      // Check stock for increase
       if (delta > 0) {
         let issues: StockIssue[] = [];
         if (item.dishId) {
@@ -389,10 +380,8 @@ export default function POSInterface({
       let newTotal = currentTotal;
 
       for (const cartItem of cart) {
-        // Direct sale items skip kitchen (status = 'ready')
         const itemStatus = cartItem.isDish ? 'pending' : 'ready';
 
-        // Create order item
         const { data: orderItem, error: itemError } = await supabase
           .from('order_items')
           .insert({
@@ -410,7 +399,6 @@ export default function POSInterface({
 
         if (itemError) throw itemError;
 
-        // Deduct stock
         if (cartItem.dishId) {
           const dishSheets = technicalSheets.filter(
             (ts) => ts.dish_id === cartItem.dishId
@@ -474,7 +462,6 @@ export default function POSInterface({
         newTotal += cartItem.price * cartItem.quantity;
       }
 
-      // Update order total
       await supabase.from('orders').update({ total: newTotal }).eq('id', orderId);
 
       toast({ title: t('pos.sent_to_kitchen') });
@@ -493,10 +480,99 @@ export default function POSInterface({
     }
   };
 
+  // Cart content (shared between sidebar and drawer)
+  const cartContent = (
+    <>
+      <ScrollArea className="flex-1">
+        {cart.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+            <ShoppingCart className="h-12 w-12 text-muted-foreground/50" />
+            <p className="mt-4 text-muted-foreground">{t('pos.cart_empty')}</p>
+          </div>
+        ) : (
+          <div className="p-4 space-y-3">
+            {cart.map((item) => (
+              <Card key={item.id}>
+                <CardContent className="p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">
+                        {item.name}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {formatCurrency(item.price)} cada
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 shrink-0"
+                      onClick={() => removeFromCart(item.id)}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                  <div className="flex items-center justify-between mt-2">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => updateCartQuantity(item.id, -1)}
+                      >
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                      <span className="w-8 text-center font-medium">
+                        {item.quantity}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => updateCartQuantity(item.id, 1)}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <p className="font-bold">
+                      {formatCurrency(item.price * item.quantity)}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </ScrollArea>
+
+      {/* Cart Footer */}
+      <div className="p-4 border-t bg-background space-y-3">
+        <div className="flex items-center justify-between text-lg font-bold">
+          <span>{t('pos.subtotal')}</span>
+          <span>{formatCurrency(cartTotal)}</span>
+        </div>
+        <Separator />
+        <div className="flex items-center justify-between text-xl font-bold text-primary">
+          <span>{t('pos.new_total')}</span>
+          <span>{formatCurrency(currentTotal + cartTotal)}</span>
+        </div>
+        <Button
+          className="w-full h-14 text-lg"
+          size="lg"
+          disabled={cart.length === 0 || sending}
+          onClick={sendToKitchen}
+        >
+          <Send className="mr-2 h-5 w-5" />
+          {sending ? t('pos.sending') : t('pos.send_to_kitchen')}
+        </Button>
+      </div>
+    </>
+  );
+
   return (
     <>
       <Dialog open={open} onOpenChange={onClose}>
-        <DialogContent className="max-w-6xl h-[90vh] p-0 gap-0 flex flex-col">
+        <DialogContent className="max-w-7xl h-[90vh] p-0 gap-0 flex flex-col">
           {/* Header */}
           <DialogHeader className="p-4 border-b shrink-0">
             <div className="flex items-center justify-between">
@@ -505,71 +581,154 @@ export default function POSInterface({
                   <ChevronLeft className="h-5 w-5" />
                 </Button>
                 <div>
-                  <DialogTitle className="text-xl">{orderLabel}</DialogTitle>
+                  <DialogTitle className="text-xl">
+                    {t('pos.new_order')} - {orderLabel}
+                  </DialogTitle>
                   <DialogDescription>
                     {t('pos.add_items_desc')}
                   </DialogDescription>
                 </div>
               </div>
-              <Badge variant="outline" className="text-lg px-4 py-2">
-                {t('pos.current_total')}: {formatCurrency(currentTotal)}
-              </Badge>
+
+              {/* Mobile cart button */}
+              {isMobile && (
+                <Button
+                  variant="outline"
+                  className="relative"
+                  onClick={() => setCartDrawerOpen(true)}
+                >
+                  <ShoppingCart className="h-5 w-5" />
+                  {cart.length > 0 && (
+                    <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs">
+                      {cart.length}
+                    </Badge>
+                  )}
+                </Button>
+              )}
+
+              {!isMobile && (
+                <Badge variant="outline" className="text-lg px-4 py-2">
+                  {t('pos.current_total')}: {formatCurrency(currentTotal)}
+                </Badge>
+              )}
             </div>
           </DialogHeader>
 
+          {/* Mobile: Horizontal category bar */}
+          {isMobile && (
+            <div className="border-b p-3 shrink-0">
+              {/* Search */}
+              <div className="relative mb-3">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder={t('pos.search_products')}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                <Button
+                  variant={selectedCategory === null ? 'default' : 'outline'}
+                  size="sm"
+                  className="shrink-0"
+                  onClick={() => setSelectedCategory(null)}
+                >
+                  {t('pos.all')}
+                </Button>
+                {productPosCategories.map((cat) => (
+                  <Button
+                    key={cat.id}
+                    variant={selectedCategory === cat.id ? 'default' : 'outline'}
+                    size="sm"
+                    className="shrink-0"
+                    onClick={() => setSelectedCategory(selectedCategory === cat.id ? null : cat.id)}
+                  >
+                    {cat.name}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Main Content */}
           <div className="flex-1 flex overflow-hidden">
-            {/* Products Grid */}
-            <div className="flex-1 flex flex-col overflow-hidden">
-              {/* Search */}
-              <div className="p-4 border-b">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder={t('pos.search_products')}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-
-              {/* Type & Category Filters */}
-                <div className="flex gap-2 mt-3 overflow-x-auto pb-2">
-                  <Button
-                    variant={selectedTypeFilter === null && selectedCategory === null ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => { setSelectedTypeFilter(null); setSelectedCategory(null); }}
-                  >
-                    {t('pos.all')}
-                  </Button>
-                  <Button
-                    variant={selectedTypeFilter === 'dishes' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => { setSelectedTypeFilter(selectedTypeFilter === 'dishes' ? null : 'dishes'); setSelectedCategory(null); }}
-                  >
-                    <UtensilsCrossed className="h-4 w-4 mr-1" />
-                    {t('pos.dishes')}
-                  </Button>
-                  <Button
-                    variant={selectedTypeFilter === 'direct' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => { setSelectedTypeFilter(selectedTypeFilter === 'direct' ? null : 'direct'); setSelectedCategory(null); }}
-                  >
-                    <Coffee className="h-4 w-4 mr-1" />
-                    {t('pos.drinks')}
-                  </Button>
-                  {productPosCategories.map((cat) => (
+            {/* Desktop: Category Sidebar */}
+            {!isMobile && (
+              <div className="w-52 border-r flex flex-col bg-muted/30 shrink-0">
+                <ScrollArea className="flex-1 p-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    {/* "Todas" button */}
                     <Button
-                      key={cat.id}
-                      variant={selectedCategory === cat.id ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => { setSelectedCategory(selectedCategory === cat.id ? null : cat.id); setSelectedTypeFilter(null); }}
+                      variant={selectedCategory === null ? 'default' : 'outline'}
+                      className={cn(
+                        "h-14 text-xs font-bold uppercase col-span-2",
+                        selectedCategory === null && "ring-2 ring-primary/50"
+                      )}
+                      onClick={() => setSelectedCategory(null)}
                     >
-                      {cat.name}
+                      {t('pos.all')}
                     </Button>
-                  ))}
+
+                    {/* Category buttons */}
+                    {productPosCategories.map((cat) => (
+                      <Button
+                        key={cat.id}
+                        variant={selectedCategory === cat.id ? 'default' : 'outline'}
+                        className={cn(
+                          "h-14 text-xs font-bold uppercase leading-tight",
+                          selectedCategory === cat.id && "ring-2 ring-primary/50"
+                        )}
+                        onClick={() => setSelectedCategory(selectedCategory === cat.id ? null : cat.id)}
+                      >
+                        {cat.name}
+                      </Button>
+                    ))}
+                  </div>
+                </ScrollArea>
+
+                {/* Bottom actions */}
+                <div className="p-3 border-t space-y-2">
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start"
+                    onClick={onClose}
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-2" />
+                    {t('pos.back')}
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    className="w-full justify-between"
+                    onClick={() => {
+                      // Scroll to cart or highlight it
+                      const cartEl = document.getElementById('pos-cart-sidebar');
+                      cartEl?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                  >
+                    {t('pos.review')}
+                    <ChevronRight className="h-4 w-4 ml-2" />
+                  </Button>
                 </div>
               </div>
+            )}
+
+            {/* Products Grid */}
+            <div className="flex-1 flex flex-col overflow-hidden">
+              {/* Desktop Search */}
+              {!isMobile && (
+                <div className="p-4 border-b shrink-0">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder={t('pos.search_products')}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Products */}
               <ScrollArea className="flex-1 p-4">
@@ -612,105 +771,45 @@ export default function POSInterface({
               </ScrollArea>
             </div>
 
-            {/* Cart Sidebar */}
-            <div className="w-80 border-l flex flex-col bg-muted/30">
-              <div className="p-4 border-b bg-background">
-                <div className="flex items-center gap-2">
-                  <ShoppingCart className="h-5 w-5" />
-                  <h3 className="font-semibold">{t('pos.cart')}</h3>
-                  {cart.length > 0 && (
-                    <Badge variant="secondary">{cart.length}</Badge>
-                  )}
-                </div>
-              </div>
-
-              <ScrollArea className="flex-1">
-                {cart.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-                    <ShoppingCart className="h-12 w-12 text-muted-foreground/50" />
-                    <p className="mt-4 text-muted-foreground">{t('pos.cart_empty')}</p>
+            {/* Desktop: Cart Sidebar */}
+            {!isMobile && (
+              <div id="pos-cart-sidebar" className="w-80 border-l flex flex-col bg-muted/30">
+                <div className="p-4 border-b bg-background">
+                  <div className="flex items-center gap-2">
+                    <ShoppingCart className="h-5 w-5" />
+                    <h3 className="font-semibold">{t('pos.cart')}</h3>
+                    {cart.length > 0 && (
+                      <Badge variant="secondary">{cart.length}</Badge>
+                    )}
                   </div>
-                ) : (
-                  <div className="p-4 space-y-3">
-                    {cart.map((item) => (
-                      <Card key={item.id}>
-                        <CardContent className="p-3">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-sm truncate">
-                                {item.name}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                {formatCurrency(item.price)} cada
-                              </p>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6 shrink-0"
-                              onClick={() => removeFromCart(item.id)}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
-                          <div className="flex items-center justify-between mt-2">
-                            <div className="flex items-center gap-2">
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => updateCartQuantity(item.id, -1)}
-                              >
-                                <Minus className="h-4 w-4" />
-                              </Button>
-                              <span className="w-8 text-center font-medium">
-                                {item.quantity}
-                              </span>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => updateCartQuantity(item.id, 1)}
-                              >
-                                <Plus className="h-4 w-4" />
-                              </Button>
-                            </div>
-                            <p className="font-bold">
-                              {formatCurrency(item.price * item.quantity)}
-                            </p>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </ScrollArea>
-
-              {/* Cart Footer */}
-              <div className="p-4 border-t bg-background space-y-3">
-                <div className="flex items-center justify-between text-lg font-bold">
-                  <span>{t('pos.subtotal')}</span>
-                  <span>{formatCurrency(cartTotal)}</span>
                 </div>
-                <Separator />
-                <div className="flex items-center justify-between text-xl font-bold text-primary">
-                  <span>{t('pos.new_total')}</span>
-                  <span>{formatCurrency(currentTotal + cartTotal)}</span>
-                </div>
-                <Button
-                  className="w-full h-14 text-lg"
-                  size="lg"
-                  disabled={cart.length === 0 || sending}
-                  onClick={sendToKitchen}
-                >
-                  <Send className="mr-2 h-5 w-5" />
-                  {sending ? t('pos.sending') : t('pos.send_to_kitchen')}
-                </Button>
+                {cartContent}
               </div>
-            </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Mobile: Cart Drawer */}
+      {isMobile && (
+        <Drawer open={cartDrawerOpen} onOpenChange={setCartDrawerOpen}>
+          <DrawerContent className="max-h-[85vh] flex flex-col">
+            <DrawerHeader>
+              <DrawerTitle className="flex items-center gap-2">
+                <ShoppingCart className="h-5 w-5" />
+                {t('pos.cart')}
+                {cart.length > 0 && (
+                  <Badge variant="secondary">{cart.length}</Badge>
+                )}
+              </DrawerTitle>
+              <DrawerDescription>
+                {t('pos.current_total')}: {formatCurrency(currentTotal)}
+              </DrawerDescription>
+            </DrawerHeader>
+            {cartContent}
+          </DrawerContent>
+        </Drawer>
+      )}
 
       {/* Stock Alert */}
       <AlertDialog open={stockAlertOpen} onOpenChange={setStockAlertOpen}>

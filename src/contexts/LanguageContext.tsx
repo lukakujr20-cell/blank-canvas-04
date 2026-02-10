@@ -557,6 +557,9 @@ const translations: Record<Language, Record<string, string>> = {
     'pos.sent_to_kitchen': 'Pedido enviado para a cozinha!',
     'pos.send_error': 'Erro ao enviar pedido',
     'pos.direct_sale': 'Venda direta',
+    'pos.new_order': 'Novo Pedido',
+    'pos.back': 'Voltar',
+    'pos.review': 'Revisar Pedido',
 
     // Common - Kitchen role
     'common.cozinha': 'Cozinha',
@@ -1145,6 +1148,9 @@ const translations: Record<Language, Record<string, string>> = {
     'pos.sent_to_kitchen': '¡Pedido enviado a la cocina!',
     'pos.send_error': 'Error al enviar pedido',
     'pos.direct_sale': 'Venta directa',
+    'pos.new_order': 'Nuevo Pedido',
+    'pos.back': 'Volver',
+    'pos.review': 'Revisar Pedido',
 
     // Common - Kitchen role
     'common.cozinha': 'Cocina',
@@ -1733,6 +1739,9 @@ const translations: Record<Language, Record<string, string>> = {
     'pos.sent_to_kitchen': 'Order sent to the kitchen!',
     'pos.send_error': 'Error sending order',
     'pos.direct_sale': 'Direct sale',
+    'pos.new_order': 'New Order',
+    'pos.back': 'Back',
+    'pos.review': 'Review Order',
 
     // Common - Kitchen role
     'common.cozinha': 'Kitchen',
