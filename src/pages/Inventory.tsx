@@ -41,7 +41,9 @@ import {
   Package,
   CalendarIcon,
   Save,
+  ShoppingCart,
 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { differenceInDays, parseISO, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -64,6 +66,8 @@ interface Item {
   last_counted_by: string | null;
   supplier_id: string | null;
   units_per_package: number;
+  direct_sale: boolean | null;
+  price: number | null;
 }
 
 interface Supplier {
@@ -105,6 +109,8 @@ export default function Inventory() {
     min_stock: 0,
     supplier_id: '',
     units_per_package: 1,
+    direct_sale: false,
+    price: 0,
   });
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
@@ -233,12 +239,14 @@ export default function Inventory() {
         min_stock: newItem.min_stock,
         units_per_package: newItem.units_per_package,
         supplier_id: newItem.supplier_id && newItem.supplier_id !== 'none' ? newItem.supplier_id : null,
+        direct_sale: newItem.direct_sale,
+        price: newItem.direct_sale ? newItem.price : null,
       });
 
       if (error) throw error;
 
       toast({ title: 'Item criado com sucesso!' });
-      setNewItem({ name: '', category_id: '', unit: 'un', min_stock: 0, supplier_id: '', units_per_package: 1 });
+      setNewItem({ name: '', category_id: '', unit: 'un', min_stock: 0, supplier_id: '', units_per_package: 1, direct_sale: false, price: 0 });
       setItemModalOpen(false);
       fetchData();
     } catch (error) {
@@ -262,13 +270,15 @@ export default function Inventory() {
           min_stock: newItem.min_stock,
           units_per_package: newItem.units_per_package,
           supplier_id: newItem.supplier_id && newItem.supplier_id !== 'none' ? newItem.supplier_id : null,
+          direct_sale: newItem.direct_sale,
+          price: newItem.direct_sale ? newItem.price : null,
         })
         .eq('id', editingItem.id);
 
       if (error) throw error;
 
       toast({ title: 'Item atualizado!' });
-      setNewItem({ name: '', category_id: '', unit: 'un', min_stock: 0, supplier_id: '', units_per_package: 1 });
+      setNewItem({ name: '', category_id: '', unit: 'un', min_stock: 0, supplier_id: '', units_per_package: 1, direct_sale: false, price: 0 });
       setEditingItem(null);
       setItemModalOpen(false);
       fetchData();
@@ -343,13 +353,15 @@ export default function Inventory() {
       min_stock: item.min_stock,
       supplier_id: item.supplier_id || 'none',
       units_per_package: item.units_per_package || 1,
+      direct_sale: item.direct_sale || false,
+      price: item.price || 0,
     });
     setItemModalOpen(true);
   };
 
   const openAddItem = (categoryId: string) => {
     setEditingItem(null);
-    setNewItem({ name: '', category_id: categoryId, unit: 'un', min_stock: 0, supplier_id: '', units_per_package: 1 });
+    setNewItem({ name: '', category_id: categoryId, unit: 'un', min_stock: 0, supplier_id: '', units_per_package: 1, direct_sale: false, price: 0 });
     setItemModalOpen(true);
   };
 
@@ -582,6 +594,41 @@ export default function Inventory() {
                   }
                 />
               </div>
+              {/* Direct Sale */}
+              <div className="flex items-center space-x-3 rounded-lg border p-4">
+                <Checkbox
+                  id="directSale"
+                  checked={newItem.direct_sale}
+                  onCheckedChange={(checked) =>
+                    setNewItem({ ...newItem, direct_sale: !!checked })
+                  }
+                />
+                <div className="flex-1">
+                  <Label htmlFor="directSale" className="cursor-pointer font-medium flex items-center gap-2">
+                    <ShoppingCart className="h-4 w-4" />
+                    Venda Direta
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Marque para itens vendidos diretamente (bebidas, produtos prontos). Não exige ficha técnica.
+                  </p>
+                </div>
+              </div>
+              {newItem.direct_sale && (
+                <div className="space-y-2">
+                  <Label htmlFor="salePrice">Preço de venda (€)</Label>
+                  <Input
+                    id="salePrice"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="Ex: 2.50"
+                    value={newItem.price}
+                    onChange={(e) =>
+                      setNewItem({ ...newItem, price: Number(e.target.value) })
+                    }
+                  />
+                </div>
+              )}
               {suppliers.length > 0 && (
                 <div className="space-y-2">
                   <Label>Fornecedor</Label>

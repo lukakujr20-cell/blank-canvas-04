@@ -61,6 +61,12 @@ interface Dish {
   description: string | null;
   price: number;
   created_at: string;
+  category_id: string | null;
+}
+
+interface Category {
+  id: string;
+  name: string;
 }
 
 interface TechnicalSheet {
@@ -99,6 +105,7 @@ export default function Dishes() {
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [technicalSheets, setTechnicalSheets] = useState<TechnicalSheet[]>([]);
   const [items, setItems] = useState<Item[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Modal states
@@ -117,6 +124,7 @@ export default function Dishes() {
     name: '',
     description: '',
     price: 0,
+    category_id: '',
   });
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
 
@@ -126,10 +134,11 @@ export default function Dishes() {
 
   const fetchData = async () => {
     try {
-      const [dishesRes, sheetsRes, itemsRes] = await Promise.all([
+      const [dishesRes, sheetsRes, itemsRes, categoriesRes] = await Promise.all([
         supabase.from('dishes').select('*').order('name'),
         supabase.from('technical_sheets').select('*'),
         supabase.from('items').select('id, name, unit, current_stock, min_stock, units_per_package').order('name'),
+        supabase.from('categories').select('id, name').order('name'),
       ]);
 
       if (dishesRes.error) throw dishesRes.error;
@@ -139,6 +148,7 @@ export default function Dishes() {
       setDishes(dishesRes.data || []);
       setTechnicalSheets(sheetsRes.data || []);
       setItems(itemsRes.data || []);
+      setCategories(categoriesRes.data || []);
     } catch (error) {
       console.error('Error fetching data:', error);
       toast({
@@ -166,7 +176,7 @@ export default function Dishes() {
   };
 
   const resetForm = () => {
-    setDishForm({ name: '', description: '', price: 0 });
+    setDishForm({ name: '', description: '', price: 0, category_id: '' });
     setIngredients([]);
     setEditingDish(null);
   };
@@ -182,6 +192,7 @@ export default function Dishes() {
       name: dish.name,
       description: dish.description || '',
       price: dish.price || 0,
+      category_id: dish.category_id || '',
     });
     const dishIngredients = getDishIngredients(dish.id);
     setIngredients(
@@ -244,6 +255,7 @@ export default function Dishes() {
             name: dishForm.name.trim(),
             description: dishForm.description.trim() || null,
             price: dishForm.price,
+            category_id: dishForm.category_id || null,
           })
           .eq('id', editingDish.id);
 
@@ -260,7 +272,7 @@ export default function Dishes() {
             name: dishForm.name.trim(),
             description: dishForm.description.trim() || null,
             price: dishForm.price,
-            created_by: user?.id,
+            category_id: dishForm.category_id || null,
           })
           .select()
           .single();
@@ -548,6 +560,30 @@ export default function Dishes() {
                       onChange={(e) => setDishForm({ ...dishForm, price: Number(e.target.value) })}
                     />
                   </div>
+                </div>
+
+                {/* PDV Category */}
+                <div className="space-y-2">
+                  <Label>Categoria de PDV</Label>
+                  <Select
+                    value={dishForm.category_id}
+                    onValueChange={(value) => setDishForm({ ...dishForm, category_id: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione uma categoria (opcional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Nenhuma</SelectItem>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Categoria para organizar o prato no PDV do garçom
+                  </p>
                 </div>
 
                 {/* Ingredients Section */}
