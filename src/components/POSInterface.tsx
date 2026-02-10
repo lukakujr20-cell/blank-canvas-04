@@ -52,6 +52,7 @@ interface Dish {
   description: string | null;
   price: number;
   category_id?: string | null;
+  pos_category_id?: string | null;
 }
 
 interface Item {
@@ -63,6 +64,12 @@ interface Item {
   unit: string;
   units_per_package: number;
   category_id: string | null;
+  pos_category_id?: string | null;
+}
+
+interface PosCategory {
+  id: string;
+  name: string;
 }
 
 interface Category {
@@ -137,6 +144,7 @@ export default function POSInterface({
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [directSaleItems, setDirectSaleItems] = useState<Item[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [posCategories, setPosCategories] = useState<PosCategory[]>([]);
   const [technicalSheets, setTechnicalSheets] = useState<TechnicalSheet[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
@@ -158,21 +166,24 @@ export default function POSInterface({
 
   const fetchData = async () => {
     try {
-      const [dishesRes, itemsRes, categoriesRes, sheetsRes] = await Promise.all([
+      const [dishesRes, itemsRes, categoriesRes, posCategoriesRes, sheetsRes] = await Promise.all([
         supabase.from('dishes').select('*').order('name'),
         supabase.from('items').select('*'),
         supabase.from('categories').select('*').order('name'),
+        supabase.from('pos_categories').select('*').order('name'),
         supabase.from('technical_sheets').select('*'),
       ]);
 
       if (dishesRes.error) throw dishesRes.error;
       if (itemsRes.error) throw itemsRes.error;
       if (categoriesRes.error) throw categoriesRes.error;
+      if (posCategoriesRes.error) throw posCategoriesRes.error;
       if (sheetsRes.error) throw sheetsRes.error;
 
       setDishes(dishesRes.data || []);
       setItems(itemsRes.data || []);
       setCategories(categoriesRes.data || []);
+      setPosCategories(posCategoriesRes.data || []);
       setTechnicalSheets(sheetsRes.data || []);
 
       // Filter direct sale items
@@ -205,18 +216,16 @@ export default function POSInterface({
     })),
   ];
 
-  // Get unique category IDs from products for dynamic tabs
-  const productCategories = (() => {
+  // Get unique POS category IDs from products for dynamic tabs
+  const productPosCategories = (() => {
     const catIds = new Set<string>();
     for (const d of dishes) {
-      // dishes now may have category_id
-      const dish = d as Dish & { category_id?: string | null };
-      if (dish.category_id) catIds.add(dish.category_id);
+      if (d.pos_category_id) catIds.add(d.pos_category_id);
     }
     for (const i of directSaleItems) {
-      if (i.category_id) catIds.add(i.category_id);
+      if (i.pos_category_id) catIds.add(i.pos_category_id);
     }
-    return categories.filter(c => catIds.has(c.id));
+    return posCategories.filter(c => catIds.has(c.id));
   })();
 
   const filteredProducts = allProducts.filter((product) => {
@@ -231,11 +240,11 @@ export default function POSInterface({
     // Category filter
     if (selectedCategory) {
       if (product.type === 'dish') {
-        const dish = dishes.find(d => d.id === product.id) as (Dish & { category_id?: string | null }) | undefined;
-        if (dish?.category_id !== selectedCategory) return false;
+        const dish = dishes.find(d => d.id === product.id);
+        if (dish?.pos_category_id !== selectedCategory) return false;
       } else {
         const item = directSaleItems.find(i => i.id === product.id);
-        if (item?.category_id !== selectedCategory) return false;
+        if (item?.pos_category_id !== selectedCategory) return false;
       }
     }
     
@@ -549,7 +558,7 @@ export default function POSInterface({
                     <Coffee className="h-4 w-4 mr-1" />
                     {t('pos.drinks')}
                   </Button>
-                  {productCategories.map((cat) => (
+                  {productPosCategories.map((cat) => (
                     <Button
                       key={cat.id}
                       variant={selectedCategory === cat.id ? 'default' : 'outline'}

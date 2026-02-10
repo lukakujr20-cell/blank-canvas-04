@@ -62,9 +62,15 @@ interface Dish {
   price: number;
   created_at: string;
   category_id: string | null;
+  pos_category_id: string | null;
 }
 
 interface Category {
+  id: string;
+  name: string;
+}
+
+interface PosCategory {
   id: string;
   name: string;
 }
@@ -106,6 +112,7 @@ export default function Dishes() {
   const [technicalSheets, setTechnicalSheets] = useState<TechnicalSheet[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [posCategories, setPosCategories] = useState<PosCategory[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Modal states
@@ -125,6 +132,7 @@ export default function Dishes() {
     description: '',
     price: 0,
     category_id: '',
+    pos_category_id: '',
   });
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
 
@@ -134,11 +142,12 @@ export default function Dishes() {
 
   const fetchData = async () => {
     try {
-      const [dishesRes, sheetsRes, itemsRes, categoriesRes] = await Promise.all([
+      const [dishesRes, sheetsRes, itemsRes, categoriesRes, posCategoriesRes] = await Promise.all([
         supabase.from('dishes').select('*').order('name'),
         supabase.from('technical_sheets').select('*'),
         supabase.from('items').select('id, name, unit, current_stock, min_stock, units_per_package').order('name'),
         supabase.from('categories').select('id, name').order('name'),
+        supabase.from('pos_categories').select('id, name').order('name'),
       ]);
 
       if (dishesRes.error) throw dishesRes.error;
@@ -148,6 +157,7 @@ export default function Dishes() {
       setDishes(dishesRes.data || []);
       setTechnicalSheets(sheetsRes.data || []);
       setItems(itemsRes.data || []);
+      setPosCategories(posCategoriesRes.data || []);
       setCategories(categoriesRes.data || []);
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -176,7 +186,7 @@ export default function Dishes() {
   };
 
   const resetForm = () => {
-    setDishForm({ name: '', description: '', price: 0, category_id: '' });
+    setDishForm({ name: '', description: '', price: 0, category_id: '', pos_category_id: '' });
     setIngredients([]);
     setEditingDish(null);
   };
@@ -193,6 +203,7 @@ export default function Dishes() {
       description: dish.description || '',
       price: dish.price || 0,
       category_id: dish.category_id || '',
+      pos_category_id: dish.pos_category_id || '',
     });
     const dishIngredients = getDishIngredients(dish.id);
     setIngredients(
@@ -256,6 +267,7 @@ export default function Dishes() {
             description: dishForm.description.trim() || null,
             price: dishForm.price,
             category_id: dishForm.category_id || null,
+            pos_category_id: dishForm.pos_category_id || null,
           })
           .eq('id', editingDish.id);
 
@@ -273,6 +285,7 @@ export default function Dishes() {
             description: dishForm.description.trim() || null,
             price: dishForm.price,
             category_id: dishForm.category_id || null,
+            pos_category_id: dishForm.pos_category_id || null,
           })
           .select()
           .single();
@@ -564,17 +577,17 @@ export default function Dishes() {
 
                 {/* PDV Category */}
                 <div className="space-y-2">
-                  <Label>Categoria de PDV</Label>
+                  <Label>Categoria de Venda (PDV) *</Label>
                   <Select
-                    value={dishForm.category_id || 'none'}
-                    onValueChange={(value) => setDishForm({ ...dishForm, category_id: value === 'none' ? '' : value })}
+                    value={dishForm.pos_category_id || 'none'}
+                    onValueChange={(value) => setDishForm({ ...dishForm, pos_category_id: value === 'none' ? '' : value })}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione uma categoria (opcional)" />
+                      <SelectValue placeholder="Selecione uma categoria de venda" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">Nenhuma</SelectItem>
-                      {categories.map((cat) => (
+                      {posCategories.map((cat) => (
                         <SelectItem key={cat.id} value={cat.id}>
                           {cat.name}
                         </SelectItem>
@@ -582,7 +595,7 @@ export default function Dishes() {
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
-                    Categoria para organizar o prato no PDV do garçom
+                    Categoria para organizar o prato no PDV do garçom (ex: Entradas, Pratos Principais, Bebidas)
                   </p>
                 </div>
 

@@ -81,6 +81,7 @@ export type Database = {
           description: string | null
           id: string
           name: string
+          pos_category_id: string | null
           price: number
           restaurant_id: string | null
         }
@@ -90,6 +91,7 @@ export type Database = {
           description?: string | null
           id?: string
           name: string
+          pos_category_id?: string | null
           price?: number
           restaurant_id?: string | null
         }
@@ -99,6 +101,7 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
+          pos_category_id?: string | null
           price?: number
           restaurant_id?: string | null
         }
@@ -108,6 +111,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dishes_pos_category_id_fkey"
+            columns: ["pos_category_id"]
+            isOneToOne: false
+            referencedRelation: "pos_categories"
             referencedColumns: ["id"]
           },
         ]
@@ -162,6 +172,7 @@ export type Database = {
           last_counted_by: string | null
           min_stock: number
           name: string
+          pos_category_id: string | null
           price: number | null
           restaurant_id: string | null
           supplier_id: string | null
@@ -179,6 +190,7 @@ export type Database = {
           last_counted_by?: string | null
           min_stock?: number
           name: string
+          pos_category_id?: string | null
           price?: number | null
           restaurant_id?: string | null
           supplier_id?: string | null
@@ -196,6 +208,7 @@ export type Database = {
           last_counted_by?: string | null
           min_stock?: number
           name?: string
+          pos_category_id?: string | null
           price?: number | null
           restaurant_id?: string | null
           supplier_id?: string | null
@@ -208,6 +221,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "items_pos_category_id_fkey"
+            columns: ["pos_category_id"]
+            isOneToOne: false
+            referencedRelation: "pos_categories"
             referencedColumns: ["id"]
           },
           {
@@ -322,6 +342,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pos_categories: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          restaurant_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          restaurant_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          restaurant_id?: string | null
+        }
+        Relationships: []
       }
       profiles: {
         Row: {

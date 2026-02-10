@@ -54,6 +54,11 @@ interface Category {
   created_at: string;
 }
 
+interface PosCategory {
+  id: string;
+  name: string;
+}
+
 interface Item {
   id: string;
   category_id: string;
@@ -88,6 +93,7 @@ export default function Inventory() {
   const isReadOnly = isKitchen;
   const { toast } = useToast();
   const [categories, setCategories] = useState<Category[]>([]);
+  const [posCategories, setPosCategories] = useState<PosCategory[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -111,6 +117,7 @@ export default function Inventory() {
     units_per_package: 1,
     direct_sale: false,
     price: 0,
+    pos_category_id: '',
   });
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
@@ -121,11 +128,12 @@ export default function Inventory() {
 
   const fetchData = async () => {
     try {
-      const [categoriesRes, itemsRes, profilesRes, suppliersRes] = await Promise.all([
+      const [categoriesRes, itemsRes, profilesRes, suppliersRes, posCategoriesRes] = await Promise.all([
         supabase.from('categories').select('*').order('name'),
         supabase.from('items').select('*').order('name'),
         supabase.from('profiles').select('*'),
         supabase.from('suppliers').select('*').order('name'),
+        supabase.from('pos_categories').select('id, name').order('name'),
       ]);
 
       if (categoriesRes.error) throw categoriesRes.error;
@@ -135,7 +143,7 @@ export default function Inventory() {
       setItems(itemsRes.data || []);
       setProfiles(profilesRes.data || []);
       setSuppliers(suppliersRes.data || []);
-      
+      setPosCategories(posCategoriesRes.data || []);
       // Expand all categories by default
       setExpandedCategories(new Set((categoriesRes.data || []).map(c => c.id)));
     } catch (error) {
@@ -241,12 +249,13 @@ export default function Inventory() {
         supplier_id: newItem.supplier_id && newItem.supplier_id !== 'none' ? newItem.supplier_id : null,
         direct_sale: newItem.direct_sale,
         price: newItem.direct_sale ? newItem.price : null,
+        pos_category_id: newItem.direct_sale && newItem.pos_category_id ? newItem.pos_category_id : null,
       });
 
       if (error) throw error;
 
       toast({ title: 'Item criado com sucesso!' });
-      setNewItem({ name: '', category_id: '', unit: 'un', min_stock: 0, supplier_id: '', units_per_package: 1, direct_sale: false, price: 0 });
+      setNewItem({ name: '', category_id: '', unit: 'un', min_stock: 0, supplier_id: '', units_per_package: 1, direct_sale: false, price: 0, pos_category_id: '' });
       setItemModalOpen(false);
       fetchData();
     } catch (error) {
@@ -272,13 +281,14 @@ export default function Inventory() {
           supplier_id: newItem.supplier_id && newItem.supplier_id !== 'none' ? newItem.supplier_id : null,
           direct_sale: newItem.direct_sale,
           price: newItem.direct_sale ? newItem.price : null,
+          pos_category_id: newItem.direct_sale && newItem.pos_category_id ? newItem.pos_category_id : null,
         })
         .eq('id', editingItem.id);
 
       if (error) throw error;
 
       toast({ title: 'Item atualizado!' });
-      setNewItem({ name: '', category_id: '', unit: 'un', min_stock: 0, supplier_id: '', units_per_package: 1, direct_sale: false, price: 0 });
+      setNewItem({ name: '', category_id: '', unit: 'un', min_stock: 0, supplier_id: '', units_per_package: 1, direct_sale: false, price: 0, pos_category_id: '' });
       setEditingItem(null);
       setItemModalOpen(false);
       fetchData();
@@ -355,13 +365,14 @@ export default function Inventory() {
       units_per_package: item.units_per_package || 1,
       direct_sale: item.direct_sale || false,
       price: item.price || 0,
+      pos_category_id: (item as any).pos_category_id || '',
     });
     setItemModalOpen(true);
   };
 
   const openAddItem = (categoryId: string) => {
     setEditingItem(null);
-    setNewItem({ name: '', category_id: categoryId, unit: 'un', min_stock: 0, supplier_id: '', units_per_package: 1, direct_sale: false, price: 0 });
+    setNewItem({ name: '', category_id: categoryId, unit: 'un', min_stock: 0, supplier_id: '', units_per_package: 1, direct_sale: false, price: 0, pos_category_id: '' });
     setItemModalOpen(true);
   };
 
@@ -614,20 +625,46 @@ export default function Inventory() {
                 </div>
               </div>
               {newItem.direct_sale && (
-                <div className="space-y-2">
-                  <Label htmlFor="salePrice">Preço de venda (€)</Label>
-                  <Input
-                    id="salePrice"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="Ex: 2.50"
-                    value={newItem.price}
-                    onChange={(e) =>
-                      setNewItem({ ...newItem, price: Number(e.target.value) })
-                    }
-                  />
-                </div>
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="salePrice">Preço de venda (€)</Label>
+                    <Input
+                      id="salePrice"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="Ex: 2.50"
+                      value={newItem.price}
+                      onChange={(e) =>
+                        setNewItem({ ...newItem, price: Number(e.target.value) })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Categoria de Venda (PDV)</Label>
+                    <Select
+                      value={newItem.pos_category_id || 'none'}
+                      onValueChange={(value) =>
+                        setNewItem({ ...newItem, pos_category_id: value === 'none' ? '' : value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a categoria de venda" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Nenhuma</SelectItem>
+                        {posCategories.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.id}>
+                            {cat.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Categoria para organizar este item no PDV do garçom
+                    </p>
+                  </div>
+                </>
               )}
               {suppliers.length > 0 && (
                 <div className="space-y-2">
