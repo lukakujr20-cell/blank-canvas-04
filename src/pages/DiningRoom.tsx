@@ -298,6 +298,7 @@ export default function DiningRoom() {
         
         if (!existingOrder) {
           // Create new order
+          const { data: profile } = await supabase.from('profiles').select('restaurant_id').eq('id', user.id).single();
           const { data: newOrder, error } = await supabase
             .from('orders')
             .insert({
@@ -305,6 +306,7 @@ export default function DiningRoom() {
               waiter_id: user.id,
               status: 'open',
               guest_count: guestCount,
+              restaurant_id: profile?.restaurant_id,
             })
             .select()
             .single();
@@ -373,6 +375,7 @@ export default function DiningRoom() {
     if (!user) return;
 
     try {
+      const { data: profile } = await supabase.from('profiles').select('restaurant_id').eq('id', user.id).single();
       const { data: newOrder, error } = await supabase
         .from('orders')
         .insert({
@@ -381,6 +384,7 @@ export default function DiningRoom() {
           status: 'open',
           guest_count: 1,
           customer_name: counterCustomerName || `Balcão #${Date.now().toString().slice(-4)}`,
+          restaurant_id: profile?.restaurant_id,
         })
         .select()
         .single();
