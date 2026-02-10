@@ -80,7 +80,8 @@ interface Profile {
 const UNITS = ['kg', 'g', 'L', 'ml', 'un', 'cx', 'pct', 'dz'];
 
 export default function Inventory() {
-  const { user, isHost } = useAuth();
+  const { user, isHost, isKitchen, isAdmin } = useAuth();
+  const isReadOnly = isKitchen;
   const { toast } = useToast();
   const [categories, setCategories] = useState<Category[]>([]);
   const [items, setItems] = useState<Item[]>([]);
@@ -440,56 +441,62 @@ export default function Inventory() {
   };
 
   return (
-    <DashboardLayout requireAdmin>
+    <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold md:text-3xl">Gestão de Estoque</h1>
+            <h1 className="text-2xl font-bold md:text-3xl">
+              {isReadOnly ? 'Consulta de Estoque' : 'Gestão de Estoque'}
+            </h1>
             <p className="mt-1 text-muted-foreground">
-              Cadastre e organize categorias e itens do estoque
+              {isReadOnly
+                ? 'Visualize os itens e quantidades disponíveis no estoque'
+                : 'Cadastre e organize categorias e itens do estoque'}
             </p>
           </div>
-          <div className="flex gap-2">
-            <Dialog open={categoryModalOpen} onOpenChange={setCategoryModalOpen}>
-              <DialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setEditingCategory(null);
-                    setNewCategoryName('');
-                  }}
-                >
-                  <FolderPlus className="mr-2 h-4 w-4" />
-                  Nova Categoria
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>
-                    {editingCategory ? 'Editar Categoria' : 'Nova Categoria'}
-                  </DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 pt-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="categoryName">Nome da categoria</Label>
-                    <Input
-                      id="categoryName"
-                      placeholder="Ex: Proteínas, Laticínios..."
-                      value={newCategoryName}
-                      onChange={(e) => setNewCategoryName(e.target.value)}
-                    />
-                  </div>
+          {!isReadOnly && (
+            <div className="flex gap-2">
+              <Dialog open={categoryModalOpen} onOpenChange={setCategoryModalOpen}>
+                <DialogTrigger asChild>
                   <Button
-                    className="w-full"
-                    onClick={editingCategory ? handleUpdateCategory : handleCreateCategory}
+                    variant="outline"
+                    onClick={() => {
+                      setEditingCategory(null);
+                      setNewCategoryName('');
+                    }}
                   >
-                    {editingCategory ? 'Salvar Alterações' : 'Criar Categoria'}
+                    <FolderPlus className="mr-2 h-4 w-4" />
+                    Nova Categoria
                   </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>
+                      {editingCategory ? 'Editar Categoria' : 'Nova Categoria'}
+                    </DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 pt-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="categoryName">Nome da categoria</Label>
+                      <Input
+                        id="categoryName"
+                        placeholder="Ex: Proteínas, Laticínios..."
+                        value={newCategoryName}
+                        onChange={(e) => setNewCategoryName(e.target.value)}
+                      />
+                    </div>
+                    <Button
+                      className="w-full"
+                      onClick={editingCategory ? handleUpdateCategory : handleCreateCategory}
+                    >
+                      {editingCategory ? 'Salvar Alterações' : 'Criar Categoria'}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+          )}
         </div>
 
         {/* Item Modal */}
@@ -660,29 +667,31 @@ export default function Inventory() {
                           ({categoryItems.length} {categoryItems.length === 1 ? 'item' : 'itens'})
                         </span>
                       </div>
-                      <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openAddItem(category.id)}
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openEditCategory(category)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteCategory(category.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
+                      {!isReadOnly && (
+                        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openAddItem(category.id)}
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openEditCategory(category)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteCategory(category.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </CardHeader>
                   {isExpanded && (
@@ -690,12 +699,14 @@ export default function Inventory() {
                       {categoryItems.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
                           <p>Nenhum item nesta categoria</p>
-                          <Button
-                            variant="link"
-                            onClick={() => openAddItem(category.id)}
-                          >
-                            Adicionar primeiro item
-                          </Button>
+                          {!isReadOnly && (
+                            <Button
+                              variant="link"
+                              onClick={() => openAddItem(category.id)}
+                            >
+                              Adicionar primeiro item
+                            </Button>
+                          )}
                         </div>
                       ) : (
                         <div className="overflow-x-auto">
@@ -710,7 +721,7 @@ export default function Inventory() {
                                 <TableHead className="font-semibold">Data Contagem</TableHead>
                                 <TableHead className="font-semibold">Validade</TableHead>
                                 <TableHead className="font-semibold">Responsável</TableHead>
-                                <TableHead className="w-[100px]"></TableHead>
+                                {!isReadOnly && <TableHead className="w-[100px]"></TableHead>}
                               </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -785,36 +796,38 @@ export default function Inventory() {
                                     )}
                                   </TableCell>
                                   <TableCell>{getProfileName(item.last_counted_by)}</TableCell>
-                                  <TableCell>
-                                    <div className="flex items-center gap-1">
-                                      {isHost && inlineEdits.has(item.id) && (
+                                  {!isReadOnly && (
+                                    <TableCell>
+                                      <div className="flex items-center gap-1">
+                                        {isHost && inlineEdits.has(item.id) && (
+                                          <Button
+                                            variant="default"
+                                            size="sm"
+                                            onClick={() => saveInlineEdit(item.id)}
+                                            disabled={savingInline.has(item.id)}
+                                            className="h-8 px-3 gap-1"
+                                          >
+                                            <Save className="h-4 w-4" />
+                                            Salvar
+                                          </Button>
+                                        )}
                                         <Button
-                                          variant="default"
-                                          size="sm"
-                                          onClick={() => saveInlineEdit(item.id)}
-                                          disabled={savingInline.has(item.id)}
-                                          className="h-8 px-3 gap-1"
+                                          variant="ghost"
+                                          size="icon"
+                                          onClick={() => openEditItem(item)}
                                         >
-                                          <Save className="h-4 w-4" />
-                                          Salvar
+                                          <Pencil className="h-4 w-4" />
                                         </Button>
-                                      )}
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => openEditItem(item)}
-                                      >
-                                        <Pencil className="h-4 w-4" />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => handleDeleteItem(item.id)}
-                                      >
-                                        <Trash2 className="h-4 w-4 text-destructive" />
-                                      </Button>
-                                    </div>
-                                  </TableCell>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          onClick={() => handleDeleteItem(item.id)}
+                                        >
+                                          <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                      </div>
+                                    </TableCell>
+                                  )}
                                 </TableRow>
                               ))}
                             </TableBody>

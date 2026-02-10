@@ -52,6 +52,12 @@ const navItems = [
     roles: ['cozinha'],
   },
   {
+    titleKey: 'nav.inventory',
+    href: '/inventory',
+    icon: Package,
+    roles: ['super_admin', 'host', 'admin', 'cozinha'],
+  },
+  {
     titleKey: 'nav.dashboard',
     href: '/dashboard',
     icon: LayoutDashboard,
@@ -63,12 +69,7 @@ const navItems = [
     icon: Utensils,
     roles: ['super_admin', 'host', 'admin', 'staff'],
   },
-  {
-    titleKey: 'nav.inventory',
-    href: '/inventory',
-    icon: Package,
-    roles: ['super_admin', 'host', 'admin'],
-  },
+  
   {
     titleKey: 'nav.stock_entry',
     href: '/stock-entry',
