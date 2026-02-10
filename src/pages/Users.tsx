@@ -176,42 +176,25 @@ export default function Users() {
         },
       });
 
-      // supabase.functions.invoke puts non-2xx body in data when error exists
-      const result = data ?? (error as any)?.context?.body;
-
       if (error) {
-        // Try to parse the error body for known errors
-        try {
-          const parsed = typeof error.message === 'string' && error.message.includes('{')
-            ? JSON.parse(error.message.substring(error.message.indexOf('{')))
-            : null;
-          if (parsed?.error === 'email_exists') {
-            toast({
-              title: 'Este email já está cadastrado no sistema. Cada email só pode ser utilizado uma vez.',
-              variant: 'destructive',
-            });
-            return;
-          }
-          if (parsed?.error === 'permission_denied') {
-            toast({ title: t('users.permission_denied'), variant: 'destructive' });
-            return;
-          }
-        } catch { /* not JSON, continue */ }
-
-        // Check if data was returned alongside the error
-        if (data?.error === 'email_exists') {
+        // Parse known errors from edge function non-2xx responses
+        const errMsg = error.message || '';
+        if (errMsg.includes('email_exists') || data?.error === 'email_exists') {
           toast({
             title: 'Este email já está cadastrado no sistema. Cada email só pode ser utilizado uma vez.',
             variant: 'destructive',
           });
+          setCreating(false);
           return;
         }
-        if (data?.error === 'permission_denied') {
+        if (errMsg.includes('permission_denied') || data?.error === 'permission_denied') {
           toast({ title: t('users.permission_denied'), variant: 'destructive' });
+          setCreating(false);
           return;
         }
-
-        throw new Error(data?.message || error.message || 'Failed to create user');
+        toast({ title: t('users.create_error'), description: data?.message || errMsg, variant: 'destructive' });
+        setCreating(false);
+        return;
       }
 
       if (data?.error) {
@@ -220,13 +203,17 @@ export default function Users() {
             title: 'Este email já está cadastrado no sistema. Cada email só pode ser utilizado uma vez.',
             variant: 'destructive',
           });
+          setCreating(false);
           return;
         }
         if (data.error === 'permission_denied') {
           toast({ title: t('users.permission_denied'), variant: 'destructive' });
+          setCreating(false);
           return;
         }
-        throw new Error(data.message || data.error);
+        toast({ title: t('users.create_error'), description: data.message || data.error, variant: 'destructive' });
+        setCreating(false);
+        return;
       }
 
       toast({ title: t('users.created_success') });
@@ -236,11 +223,15 @@ export default function Users() {
     } catch (error: unknown) {
       console.error('Error creating user:', error);
       const message = error instanceof Error ? error.message : '';
-      toast({
-        title: t('users.create_error'),
-        description: message,
-        variant: 'destructive',
-      });
+      // Last resort check for known errors
+      if (message.includes('email_exists')) {
+        toast({
+          title: 'Este email já está cadastrado no sistema. Cada email só pode ser utilizado uma vez.',
+          variant: 'destructive',
+        });
+      } else {
+        toast({ title: t('users.create_error'), description: message, variant: 'destructive' });
+      }
     } finally {
       setCreating(false);
     }
