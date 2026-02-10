@@ -36,8 +36,8 @@ export default function DashboardLayout({ children, requireAdmin = false }: Dash
     if (!loading && requireAdmin && !isAdmin) {
       navigate('/dashboard');
     }
-    // Redirect kitchen users to kitchen panel if they try to access other pages
-    if (!loading && isKitchen && location.pathname !== '/kitchen') {
+    // Redirect kitchen users to kitchen panel if they try to access unauthorized pages
+    if (!loading && isKitchen && location.pathname !== '/kitchen' && location.pathname !== '/inventory') {
       navigate('/kitchen');
     }
   }, [user, loading, isAdmin, isKitchen, requireAdmin, navigate, location.pathname]);
