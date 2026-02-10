@@ -102,7 +102,7 @@ serve(async (req) => {
     const { data: requesterProfile } = await supabaseAdmin
       .from("profiles")
       .select("restaurant_id")
-      .eq("user_id", currentUser.id)
+      .eq("id", currentUser.id)
       .single();
 
     const requesterRestaurantId = requesterProfile?.restaurant_id;
@@ -200,7 +200,7 @@ serve(async (req) => {
     if (roleInsertError) {
       console.error("Role assignment failed:", roleInsertError.code || "unknown_error");
       // Try to clean up
-      await supabaseAdmin.from("profiles").delete().eq("user_id", authData.user.id);
+      await supabaseAdmin.from("profiles").delete().eq("id", authData.user.id);
       await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
       return new Response(
         JSON.stringify({ error: "role_failed", message: "Failed to assign user role" }),

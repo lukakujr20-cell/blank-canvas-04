@@ -79,29 +79,42 @@ export default function Users() {
 
   const fetchUsers = async () => {
     try {
-      const { data: roles, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('user_id, role');
-
-      if (rolesError) throw rolesError;
-
+      // RLS on profiles already filters by restaurant_id,
+      // so we only see profiles from our own restaurant (or all if super_admin)
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('*');
 
       if (profilesError) throw profilesError;
 
-      const usersData: UserWithRole[] = (roles || []).map((role: any) => {
-        const profile = (profiles as any[])?.find((p: any) => p.id === role.user_id);
-        return {
-          id: role.user_id,
-          email: profile?.email || 'Sem email',
-          created_at: profile?.created_at || new Date().toISOString(),
-          role: role.role as AppRole,
-          full_name: profile?.full_name || 'Sem nome',
-          whatsapp: profile?.whatsapp || undefined,
-        };
-      });
+      const profileIds = (profiles as any[] || []).map((p: any) => p.id);
+
+      if (profileIds.length === 0) {
+        setUsers([]);
+        setLoading(false);
+        return;
+      }
+
+      const { data: roles, error: rolesError } = await (supabase
+        .from('user_roles') as any)
+        .select('user_id, role')
+        .in('user_id', profileIds);
+
+      if (rolesError) throw rolesError;
+
+      const usersData: UserWithRole[] = (roles || [])
+        .filter((role: any) => role.role !== 'super_admin') // Never show super_admin in this list
+        .map((role: any) => {
+          const profile = (profiles as any[])?.find((p: any) => p.id === role.user_id);
+          return {
+            id: role.user_id,
+            email: profile?.email || 'Sem email',
+            created_at: profile?.created_at || new Date().toISOString(),
+            role: role.role as AppRole,
+            full_name: profile?.full_name || 'Sem nome',
+            whatsapp: profile?.whatsapp || undefined,
+          };
+        });
 
       setUsers(usersData);
     } catch (error) {
