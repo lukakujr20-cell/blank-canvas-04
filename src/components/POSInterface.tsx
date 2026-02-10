@@ -52,6 +52,17 @@ import {
   ChevronLeft,
   ChevronRight,
   Printer,
+  Sandwich,
+  Salad,
+  CupSoda,
+  Pizza,
+  Cherry,
+  Soup,
+  Beef,
+  Dessert,
+  Beer,
+  Milk,
+  type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -74,6 +85,55 @@ interface Item {
   units_per_package: number;
   category_id: string | null;
   pos_category_id?: string | null;
+}
+
+// Map category names to food icons for visual display
+const CATEGORY_ICON_MAP: Record<string, LucideIcon> = {
+  lanches: Sandwich,
+  lanche: Sandwich,
+  hamburger: Sandwich,
+  hamburguer: Sandwich,
+  acompanhamentos: Salad,
+  acompanhams: Salad,
+  salada: Salad,
+  saladas: Salad,
+  porções: Beef,
+  porcoes: Beef,
+  porção: Beef,
+  comidas: UtensilsCrossed,
+  comida: UtensilsCrossed,
+  pratos: UtensilsCrossed,
+  prato: UtensilsCrossed,
+  'pratos principais': UtensilsCrossed,
+  bebidas: CupSoda,
+  bebida: CupSoda,
+  drinks: CupSoda,
+  pizza: Pizza,
+  pizzas: Pizza,
+  açaí: Cherry,
+  acai: Cherry,
+  sobremesas: Dessert,
+  sobremesa: Dessert,
+  doces: IceCream,
+  sorvetes: IceCream,
+  sorvete: IceCream,
+  café: Coffee,
+  cafes: Coffee,
+  sucos: CupSoda,
+  suco: CupSoda,
+  cerveja: Beer,
+  cervejas: Beer,
+  vinhos: Wine,
+  vinho: Wine,
+  milkshakes: Milk,
+  milkshake: Milk,
+  entradas: Soup,
+  entrada: Soup,
+};
+
+function getCategoryIcon(categoryName: string): LucideIcon {
+  const key = categoryName.toLowerCase().trim();
+  return CATEGORY_ICON_MAP[key] || UtensilsCrossed;
 }
 
 interface PosCategory {
@@ -614,124 +674,88 @@ export default function POSInterface({
             </div>
           </DialogHeader>
 
-          {/* Mobile: Horizontal category bar */}
-          {isMobile && (
-            <div className="border-b p-3 shrink-0">
-              {/* Search */}
-              <div className="relative mb-3">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder={t('pos.search_products')}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <div className="flex gap-2 overflow-x-auto pb-1">
-                <Button
-                  variant={selectedCategory === null ? 'default' : 'outline'}
-                  size="sm"
-                  className="shrink-0"
-                  onClick={() => setSelectedCategory(null)}
-                >
-                  {t('pos.all')}
-                </Button>
-                {productPosCategories.map((cat) => (
-                  <Button
-                    key={cat.id}
-                    variant={selectedCategory === cat.id ? 'default' : 'outline'}
-                    size="sm"
-                    className="shrink-0"
-                    onClick={() => setSelectedCategory(selectedCategory === cat.id ? null : cat.id)}
-                  >
-                    {cat.name}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Main Content */}
           <div className="flex-1 flex overflow-hidden">
-            {/* Desktop: Category Sidebar */}
-            {!isMobile && (
-              <div className="w-52 border-r flex flex-col bg-muted/30 shrink-0">
-                <ScrollArea className="flex-1 p-3">
-                  <div className="grid grid-cols-2 gap-2">
-                    {/* "Todas" button */}
-                    <Button
-                      variant={selectedCategory === null ? 'default' : 'outline'}
-                      className={cn(
-                        "h-14 text-xs font-bold uppercase col-span-2",
-                        selectedCategory === null && "ring-2 ring-primary/50"
-                      )}
-                      onClick={() => setSelectedCategory(null)}
-                    >
+            {/* Products Area */}
+            <div className="flex-1 flex flex-col overflow-hidden">
+              {/* Horizontal Category Bar - like reference image */}
+              <div className="border-b shrink-0 bg-muted/20">
+                <div className="flex gap-1 overflow-x-auto p-3 pb-2">
+                  {/* "Todas" category */}
+                  <button
+                    className={cn(
+                      "flex flex-col items-center gap-1.5 px-3 py-2 rounded-lg min-w-[72px] transition-all shrink-0",
+                      selectedCategory === null
+                        ? "bg-primary text-primary-foreground shadow-md"
+                        : "hover:bg-muted"
+                    )}
+                    onClick={() => setSelectedCategory(null)}
+                  >
+                    <div className={cn(
+                      "h-12 w-12 rounded-full flex items-center justify-center",
+                      selectedCategory === null
+                        ? "bg-primary-foreground/20"
+                        : "bg-primary/10"
+                    )}>
+                      <UtensilsCrossed className={cn(
+                        "h-6 w-6",
+                        selectedCategory === null ? "text-primary-foreground" : "text-primary"
+                      )} />
+                    </div>
+                    <span className="text-[10px] font-bold uppercase leading-tight text-center">
                       {t('pos.all')}
-                    </Button>
+                    </span>
+                  </button>
 
-                    {/* Category buttons */}
-                    {productPosCategories.map((cat) => (
-                      <Button
+                  {productPosCategories.map((cat) => {
+                    const Icon = getCategoryIcon(cat.name);
+                    const isActive = selectedCategory === cat.id;
+                    return (
+                      <button
                         key={cat.id}
-                        variant={selectedCategory === cat.id ? 'default' : 'outline'}
                         className={cn(
-                          "h-14 text-xs font-bold uppercase leading-tight",
-                          selectedCategory === cat.id && "ring-2 ring-primary/50"
+                          "flex flex-col items-center gap-1.5 px-3 py-2 rounded-lg min-w-[72px] transition-all shrink-0",
+                          isActive
+                            ? "bg-primary text-primary-foreground shadow-md"
+                            : "hover:bg-muted"
                         )}
-                        onClick={() => setSelectedCategory(selectedCategory === cat.id ? null : cat.id)}
+                        onClick={() => setSelectedCategory(isActive ? null : cat.id)}
                       >
-                        {cat.name}
-                      </Button>
-                    ))}
-                  </div>
-                </ScrollArea>
-
-                {/* Bottom actions */}
-                <div className="p-3 border-t space-y-2">
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start"
-                    onClick={onClose}
-                  >
-                    <ChevronLeft className="h-4 w-4 mr-2" />
-                    {t('pos.back')}
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    className="w-full justify-between"
-                    onClick={() => {
-                      // Scroll to cart or highlight it
-                      const cartEl = document.getElementById('pos-cart-sidebar');
-                      cartEl?.scrollIntoView({ behavior: 'smooth' });
-                    }}
-                  >
-                    {t('pos.review')}
-                    <ChevronRight className="h-4 w-4 ml-2" />
-                  </Button>
+                        <div className={cn(
+                          "h-12 w-12 rounded-full flex items-center justify-center",
+                          isActive
+                            ? "bg-primary-foreground/20"
+                            : "bg-primary/10"
+                        )}>
+                          <Icon className={cn(
+                            "h-6 w-6",
+                            isActive ? "text-primary-foreground" : "text-primary"
+                          )} />
+                        </div>
+                        <span className="text-[10px] font-bold uppercase leading-tight text-center max-w-[64px] line-clamp-1">
+                          {cat.name}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
-            )}
 
-            {/* Products Grid */}
-            <div className="flex-1 flex flex-col overflow-hidden">
-              {/* Desktop Search */}
-              {!isMobile && (
-                <div className="p-4 border-b shrink-0">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder={t('pos.search_products')}
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
+              {/* Search Bar */}
+              <div className="p-3 border-b shrink-0">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder={t('pos.search_products')}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
                 </div>
-              )}
+              </div>
 
-              {/* Products */}
-              <ScrollArea className="flex-1 p-4">
+              {/* Products Grid */}
+              <ScrollArea className="flex-1 p-3">
                 {loading ? (
                   <div className="flex items-center justify-center py-16">
                     <p className="text-muted-foreground">{t('common.loading')}</p>
@@ -742,30 +766,29 @@ export default function POSInterface({
                     <p className="mt-4 text-muted-foreground">{t('pos.no_products')}</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                    {filteredProducts.map((product) => (
-                      <Card
-                        key={`${product.type}-${product.id}`}
-                        className="cursor-pointer transition-all hover:scale-105 hover:shadow-lg active:scale-95"
-                        onClick={() => addToCart(product)}
-                      >
-                        <CardContent className="p-4 flex flex-col items-center text-center">
-                          <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-3">
-                            {product.type === 'dish' ? (
-                              <UtensilsCrossed className="h-8 w-8 text-primary" />
-                            ) : (
-                              <Coffee className="h-8 w-8 text-primary" />
-                            )}
-                          </div>
-                          <h3 className="font-medium text-sm line-clamp-2">
-                            {product.name}
-                          </h3>
-                          <p className="mt-1 font-bold text-primary">
-                            {formatCurrency(product.price)}
-                          </p>
-                        </CardContent>
-                      </Card>
-                    ))}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                    {filteredProducts.map((product) => {
+                      const ProductIcon = product.type === 'dish' ? UtensilsCrossed : Coffee;
+                      return (
+                        <Card
+                          key={`${product.type}-${product.id}`}
+                          className="cursor-pointer transition-all hover:scale-105 hover:shadow-lg active:scale-95"
+                          onClick={() => addToCart(product)}
+                        >
+                          <CardContent className="p-3 flex flex-col items-center text-center">
+                            <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+                              <ProductIcon className="h-7 w-7 text-primary" />
+                            </div>
+                            <h3 className="font-medium text-xs line-clamp-2 leading-tight">
+                              {product.name}
+                            </h3>
+                            <p className="mt-1 font-bold text-sm text-primary">
+                              {formatCurrency(product.price)}
+                            </p>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                   </div>
                 )}
               </ScrollArea>
