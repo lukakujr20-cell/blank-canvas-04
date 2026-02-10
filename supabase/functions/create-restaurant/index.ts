@@ -137,7 +137,23 @@ Deno.serve(async (req) => {
       console.error("Error assigning role:", assignRoleError);
     }
 
-    console.log(`Restaurant "${restaurant_name}" created successfully with owner ${owner_email}`);
+    // 5. Create 5 default tables for the new restaurant
+    const defaultTables = Array.from({ length: 5 }, (_, i) => ({
+      table_number: i + 1,
+      capacity: 4,
+      status: "free",
+      restaurant_id: restaurant.id,
+    }));
+
+    const { error: tablesError } = await supabaseAdmin
+      .from("restaurant_tables")
+      .insert(defaultTables);
+
+    if (tablesError) {
+      console.error("Error creating default tables:", tablesError);
+    }
+
+    console.log(`Restaurant "${restaurant_name}" created successfully with owner ${owner_email} and 5 default tables`);
 
     return new Response(
       JSON.stringify({ 
