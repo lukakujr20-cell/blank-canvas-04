@@ -51,6 +51,7 @@ interface Dish {
   name: string;
   description: string | null;
   price: number;
+  category_id?: string | null;
 }
 
 interface Item {
@@ -61,6 +62,7 @@ interface Item {
   current_stock: number | null;
   unit: string;
   units_per_package: number;
+  category_id: string | null;
 }
 
 interface Category {
@@ -140,6 +142,7 @@ export default function POSInterface({
   const [loading, setLoading] = useState(true);
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedTypeFilter, setSelectedTypeFilter] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [stockIssues, setStockIssues] = useState<StockIssue[]>([]);
@@ -202,10 +205,40 @@ export default function POSInterface({
     })),
   ];
 
+  // Get unique category IDs from products for dynamic tabs
+  const productCategories = (() => {
+    const catIds = new Set<string>();
+    for (const d of dishes) {
+      // dishes now may have category_id
+      const dish = d as Dish & { category_id?: string | null };
+      if (dish.category_id) catIds.add(dish.category_id);
+    }
+    for (const i of directSaleItems) {
+      if (i.category_id) catIds.add(i.category_id);
+    }
+    return categories.filter(c => catIds.has(c.id));
+  })();
+
   const filteredProducts = allProducts.filter((product) => {
     const matchesSearch =
       !searchQuery ||
       product.name.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // Type filter (dishes vs direct sale)
+    if (selectedTypeFilter === 'dishes' && product.type !== 'dish') return false;
+    if (selectedTypeFilter === 'direct' && product.type !== 'item') return false;
+    
+    // Category filter
+    if (selectedCategory) {
+      if (product.type === 'dish') {
+        const dish = dishes.find(d => d.id === product.id) as (Dish & { category_id?: string | null }) | undefined;
+        if (dish?.category_id !== selectedCategory) return false;
+      } else {
+        const item = directSaleItems.find(i => i.id === product.id);
+        if (item?.category_id !== selectedCategory) return false;
+      }
+    }
+    
     return matchesSearch;
   });
 
@@ -347,6 +380,9 @@ export default function POSInterface({
       let newTotal = currentTotal;
 
       for (const cartItem of cart) {
+        // Direct sale items skip kitchen (status = 'ready')
+        const itemStatus = cartItem.isDish ? 'pending' : 'ready';
+
         // Create order item
         const { data: orderItem, error: itemError } = await supabase
           .from('order_items')
@@ -356,7 +392,7 @@ export default function POSInterface({
             dish_name: cartItem.name,
             quantity: cartItem.quantity,
             unit_price: cartItem.price,
-            status: 'pending',
+            status: itemStatus,
             notes: cartItem.notes || null,
             sent_at: new Date().toISOString(),
           })
@@ -488,31 +524,41 @@ export default function POSInterface({
                   />
                 </div>
 
-                {/* Category Filters */}
+              {/* Type & Category Filters */}
                 <div className="flex gap-2 mt-3 overflow-x-auto pb-2">
                   <Button
-                    variant={selectedCategory === null ? 'default' : 'outline'}
+                    variant={selectedTypeFilter === null && selectedCategory === null ? 'default' : 'outline'}
                     size="sm"
-                    onClick={() => setSelectedCategory(null)}
+                    onClick={() => { setSelectedTypeFilter(null); setSelectedCategory(null); }}
                   >
                     {t('pos.all')}
                   </Button>
                   <Button
-                    variant={selectedCategory === 'dishes' ? 'default' : 'outline'}
+                    variant={selectedTypeFilter === 'dishes' ? 'default' : 'outline'}
                     size="sm"
-                    onClick={() => setSelectedCategory('dishes')}
+                    onClick={() => { setSelectedTypeFilter(selectedTypeFilter === 'dishes' ? null : 'dishes'); setSelectedCategory(null); }}
                   >
                     <UtensilsCrossed className="h-4 w-4 mr-1" />
                     {t('pos.dishes')}
                   </Button>
                   <Button
-                    variant={selectedCategory === 'drinks' ? 'default' : 'outline'}
+                    variant={selectedTypeFilter === 'direct' ? 'default' : 'outline'}
                     size="sm"
-                    onClick={() => setSelectedCategory('drinks')}
+                    onClick={() => { setSelectedTypeFilter(selectedTypeFilter === 'direct' ? null : 'direct'); setSelectedCategory(null); }}
                   >
                     <Coffee className="h-4 w-4 mr-1" />
                     {t('pos.drinks')}
                   </Button>
+                  {productCategories.map((cat) => (
+                    <Button
+                      key={cat.id}
+                      variant={selectedCategory === cat.id ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => { setSelectedCategory(selectedCategory === cat.id ? null : cat.id); setSelectedTypeFilter(null); }}
+                    >
+                      {cat.name}
+                    </Button>
+                  ))}
                 </div>
               </div>
 
