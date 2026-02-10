@@ -176,23 +176,54 @@ export default function Users() {
         },
       });
 
+      // supabase.functions.invoke puts non-2xx body in data when error exists
+      const result = data ?? (error as any)?.context?.body;
+
       if (error) {
-        throw new Error(error.message || 'Failed to create user');
+        // Try to parse the error body for known errors
+        try {
+          const parsed = typeof error.message === 'string' && error.message.includes('{')
+            ? JSON.parse(error.message.substring(error.message.indexOf('{')))
+            : null;
+          if (parsed?.error === 'email_exists') {
+            toast({
+              title: 'Este email já está cadastrado no sistema. Cada email só pode ser utilizado uma vez.',
+              variant: 'destructive',
+            });
+            return;
+          }
+          if (parsed?.error === 'permission_denied') {
+            toast({ title: t('users.permission_denied'), variant: 'destructive' });
+            return;
+          }
+        } catch { /* not JSON, continue */ }
+
+        // Check if data was returned alongside the error
+        if (data?.error === 'email_exists') {
+          toast({
+            title: 'Este email já está cadastrado no sistema. Cada email só pode ser utilizado uma vez.',
+            variant: 'destructive',
+          });
+          return;
+        }
+        if (data?.error === 'permission_denied') {
+          toast({ title: t('users.permission_denied'), variant: 'destructive' });
+          return;
+        }
+
+        throw new Error(data?.message || error.message || 'Failed to create user');
       }
 
       if (data?.error) {
         if (data.error === 'email_exists') {
           toast({
-            title: t('users.email_exists'),
+            title: 'Este email já está cadastrado no sistema. Cada email só pode ser utilizado uma vez.',
             variant: 'destructive',
           });
           return;
         }
         if (data.error === 'permission_denied') {
-          toast({
-            title: t('users.permission_denied'),
-            variant: 'destructive',
-          });
+          toast({ title: t('users.permission_denied'), variant: 'destructive' });
           return;
         }
         throw new Error(data.message || data.error);

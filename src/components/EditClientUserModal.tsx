@@ -80,11 +80,22 @@ export default function EditClientUserModal({
         },
       });
 
-      if (error) throw new Error(error.message || 'Failed to update user');
+      if (error) {
+        // Try parsing known errors from non-2xx responses
+        if (data?.error === 'email_exists') {
+          toast({ title: 'Este email já está cadastrado no sistema. Cada email só pode ser utilizado uma vez.', variant: 'destructive' });
+          return;
+        }
+        if (data?.error === 'permission_denied') {
+          toast({ title: t('users.permission_denied'), variant: 'destructive' });
+          return;
+        }
+        throw new Error(data?.message || error.message || 'Failed to update user');
+      }
 
       if (data?.error) {
         if (data.error === 'email_exists') {
-          toast({ title: t('users.email_exists'), variant: 'destructive' });
+          toast({ title: 'Este email já está cadastrado no sistema. Cada email só pode ser utilizado uma vez.', variant: 'destructive' });
           return;
         }
         if (data.error === 'permission_denied') {
