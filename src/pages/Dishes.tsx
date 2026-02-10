@@ -134,6 +134,8 @@ export default function Dishes() {
     category_id: '',
     pos_category_id: '',
   });
+  const [newPosCategoryName, setNewPosCategoryName] = useState('');
+  const [creatingPosCategory, setCreatingPosCategory] = useState(false);
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
 
   useEffect(() => {
@@ -580,7 +582,13 @@ export default function Dishes() {
                   <Label>Categoria de Venda (PDV) *</Label>
                   <Select
                     value={dishForm.pos_category_id || 'none'}
-                    onValueChange={(value) => setDishForm({ ...dishForm, pos_category_id: value === 'none' ? '' : value })}
+                    onValueChange={(value) => {
+                      if (value === '__new__') {
+                        setCreatingPosCategory(true);
+                      } else {
+                        setDishForm({ ...dishForm, pos_category_id: value === 'none' ? '' : value });
+                      }
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione uma categoria de venda" />
@@ -592,8 +600,64 @@ export default function Dishes() {
                           {cat.name}
                         </SelectItem>
                       ))}
+                      <SelectItem value="__new__" className="text-primary font-medium">
+                        <span className="flex items-center gap-1">
+                          <Plus className="h-3 w-3" /> Nova categoria
+                        </span>
+                      </SelectItem>
                     </SelectContent>
                   </Select>
+
+                  {creatingPosCategory && (
+                    <div className="flex items-center gap-2 mt-2 p-2 border rounded-lg bg-muted/30">
+                      <Input
+                        placeholder="Nome da nova categoria"
+                        value={newPosCategoryName}
+                        onChange={(e) => setNewPosCategoryName(e.target.value)}
+                        onKeyDown={async (e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            if (!newPosCategoryName.trim()) return;
+                            const { data, error } = await supabase.from('pos_categories').insert({ name: newPosCategoryName.trim() }).select().single();
+                            if (!error && data) {
+                              setPosCategories(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
+                              setDishForm(f => ({ ...f, pos_category_id: data.id }));
+                              setNewPosCategoryName('');
+                              setCreatingPosCategory(false);
+                              toast({ title: 'Categoria criada!' });
+                            }
+                          }
+                        }}
+                        autoFocus
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={async () => {
+                          if (!newPosCategoryName.trim()) return;
+                          const { data, error } = await supabase.from('pos_categories').insert({ name: newPosCategoryName.trim() }).select().single();
+                          if (!error && data) {
+                            setPosCategories(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
+                            setDishForm(f => ({ ...f, pos_category_id: data.id }));
+                            setNewPosCategoryName('');
+                            setCreatingPosCategory(false);
+                            toast({ title: 'Categoria criada!' });
+                          }
+                        }}
+                      >
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => { setCreatingPosCategory(false); setNewPosCategoryName(''); }}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
+
                   <p className="text-xs text-muted-foreground">
                     Categoria para organizar o prato no PDV do garçom (ex: Entradas, Pratos Principais, Bebidas)
                   </p>
