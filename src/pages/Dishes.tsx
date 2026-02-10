@@ -566,14 +566,14 @@ export default function Dishes() {
                 <div className="space-y-2">
                   <Label>Categoria de PDV</Label>
                   <Select
-                    value={dishForm.category_id}
-                    onValueChange={(value) => setDishForm({ ...dishForm, category_id: value })}
+                    value={dishForm.category_id || 'none'}
+                    onValueChange={(value) => setDishForm({ ...dishForm, category_id: value === 'none' ? '' : value })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione uma categoria (opcional)" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Nenhuma</SelectItem>
+                      <SelectItem value="none">Nenhuma</SelectItem>
                       {categories.map((cat) => (
                         <SelectItem key={cat.id} value={cat.id}>
                           {cat.name}
