@@ -73,6 +73,9 @@ interface Item {
   units_per_package: number;
   direct_sale: boolean | null;
   price: number | null;
+  sub_unit: string | null;
+  recipe_unit: string | null;
+  recipe_units_per_consumption: number | null;
 }
 
 interface Supplier {
@@ -86,7 +89,7 @@ interface Profile {
   full_name: string;
 }
 
-const UNITS = ['kg', 'g', 'L', 'ml', 'un', 'cx', 'pct', 'dz'];
+import { GASTRO_UNIT_GROUPS, ALL_UNITS, getUnitLabel } from '@/lib/unitConversions';
 
 export default function Inventory() {
   const { user, isHost, isKitchen, isAdmin } = useAuth();
@@ -118,6 +121,10 @@ export default function Inventory() {
     direct_sale: false,
     price: 0,
     pos_category_id: '',
+    sub_unit: '',
+    recipe_unit: '',
+    recipe_units_per_consumption: 0,
+    showRecipeUnit: false,
   });
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
@@ -250,12 +257,15 @@ export default function Inventory() {
         direct_sale: newItem.direct_sale,
         price: newItem.direct_sale ? newItem.price : null,
         pos_category_id: newItem.direct_sale && newItem.pos_category_id ? newItem.pos_category_id : null,
+        sub_unit: newItem.sub_unit || null,
+        recipe_unit: newItem.showRecipeUnit && newItem.recipe_unit ? newItem.recipe_unit : null,
+        recipe_units_per_consumption: newItem.showRecipeUnit && newItem.recipe_units_per_consumption > 0 ? newItem.recipe_units_per_consumption : null,
       });
 
       if (error) throw error;
 
       toast({ title: 'Item criado com sucesso!' });
-      setNewItem({ name: '', category_id: '', unit: 'un', min_stock: 0, supplier_id: '', units_per_package: 1, direct_sale: false, price: 0, pos_category_id: '' });
+      setNewItem({ name: '', category_id: '', unit: 'un', min_stock: 0, supplier_id: '', units_per_package: 1, direct_sale: false, price: 0, pos_category_id: '', sub_unit: '', recipe_unit: '', recipe_units_per_consumption: 0, showRecipeUnit: false });
       setItemModalOpen(false);
       fetchData();
     } catch (error) {
@@ -282,13 +292,16 @@ export default function Inventory() {
           direct_sale: newItem.direct_sale,
           price: newItem.direct_sale ? newItem.price : null,
           pos_category_id: newItem.direct_sale && newItem.pos_category_id ? newItem.pos_category_id : null,
+          sub_unit: newItem.sub_unit || null,
+          recipe_unit: newItem.showRecipeUnit && newItem.recipe_unit ? newItem.recipe_unit : null,
+          recipe_units_per_consumption: newItem.showRecipeUnit && newItem.recipe_units_per_consumption > 0 ? newItem.recipe_units_per_consumption : null,
         })
         .eq('id', editingItem.id);
 
       if (error) throw error;
 
       toast({ title: 'Item atualizado!' });
-      setNewItem({ name: '', category_id: '', unit: 'un', min_stock: 0, supplier_id: '', units_per_package: 1, direct_sale: false, price: 0, pos_category_id: '' });
+      setNewItem({ name: '', category_id: '', unit: 'un', min_stock: 0, supplier_id: '', units_per_package: 1, direct_sale: false, price: 0, pos_category_id: '', sub_unit: '', recipe_unit: '', recipe_units_per_consumption: 0, showRecipeUnit: false });
       setEditingItem(null);
       setItemModalOpen(false);
       fetchData();
@@ -366,13 +379,17 @@ export default function Inventory() {
       direct_sale: item.direct_sale || false,
       price: item.price || 0,
       pos_category_id: (item as any).pos_category_id || '',
+      sub_unit: item.sub_unit || '',
+      recipe_unit: item.recipe_unit || '',
+      recipe_units_per_consumption: item.recipe_units_per_consumption || 0,
+      showRecipeUnit: !!(item.recipe_unit),
     });
     setItemModalOpen(true);
   };
 
   const openAddItem = (categoryId: string) => {
     setEditingItem(null);
-    setNewItem({ name: '', category_id: categoryId, unit: 'un', min_stock: 0, supplier_id: '', units_per_package: 1, direct_sale: false, price: 0, pos_category_id: '' });
+    setNewItem({ name: '', category_id: categoryId, unit: 'un', min_stock: 0, supplier_id: '', units_per_package: 1, direct_sale: false, price: 0, pos_category_id: '', sub_unit: '', recipe_unit: '', recipe_units_per_consumption: 0, showRecipeUnit: false });
     setItemModalOpen(true);
   };
 
@@ -562,7 +579,7 @@ export default function Inventory() {
               )}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Unidade</Label>
+                  <Label>Unidade de Compra</Label>
                   <Select
                     value={newItem.unit}
                     onValueChange={(value) => setNewItem({ ...newItem, unit: value })}
@@ -571,10 +588,15 @@ export default function Inventory() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {UNITS.map((unit) => (
-                        <SelectItem key={unit} value={unit}>
-                          {unit}
-                        </SelectItem>
+                      {GASTRO_UNIT_GROUPS.map((group) => (
+                        <div key={group.label}>
+                          <p className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">{group.label}</p>
+                          {group.units.map((u) => (
+                            <SelectItem key={u.value} value={u.value}>
+                              {u.label}
+                            </SelectItem>
+                          ))}
+                        </div>
                       ))}
                     </SelectContent>
                   </Select>
@@ -592,19 +614,122 @@ export default function Inventory() {
                   />
                 </div>
               </div>
+
+              {/* Level 2: Units per package + sub-unit */}
               <div className="space-y-2">
-                <Label htmlFor="unitsPerPackage">Unidades por pacote</Label>
-                <p className="text-xs text-muted-foreground">Quantas unidades de consumo vêm em cada unidade de compra?</p>
-                <Input
-                  id="unitsPerPackage"
-                  type="number"
-                  min="1"
-                  value={newItem.units_per_package}
-                  onChange={(e) =>
-                    setNewItem({ ...newItem, units_per_package: Math.max(1, Number(e.target.value)) })
-                  }
-                />
+                <Label>Unidades por pacote (Nível 2)</Label>
+                <p className="text-xs text-muted-foreground">
+                  Quantas unidades de consumo vêm em cada <strong>{getUnitLabel(newItem.unit)}</strong>?
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Input
+                    type="number"
+                    min="1"
+                    value={newItem.units_per_package}
+                    onChange={(e) =>
+                      setNewItem({ ...newItem, units_per_package: Math.max(1, Number(e.target.value)) })
+                    }
+                  />
+                  <Select
+                    value={newItem.sub_unit || 'un'}
+                    onValueChange={(value) => setNewItem({ ...newItem, sub_unit: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sub-unidade" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {GASTRO_UNIT_GROUPS.map((group) => (
+                        <div key={group.label}>
+                          <p className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">{group.label}</p>
+                          {group.units.map((u) => (
+                            <SelectItem key={u.value} value={u.value}>
+                              {u.label}
+                            </SelectItem>
+                          ))}
+                        </div>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {newItem.units_per_package > 1 && (
+                  <p className="text-xs text-primary">
+                    1 {getUnitLabel(newItem.unit)} = {newItem.units_per_package} {getUnitLabel(newItem.sub_unit || 'un')}
+                  </p>
+                )}
               </div>
+
+              {/* Level 3: Recipe unit (optional) */}
+              {!newItem.showRecipeUnit ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => setNewItem({ ...newItem, showRecipeUnit: true })}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Adicionar Medida de Receita (Nível 3)
+                </Button>
+              ) : (
+                <div className="space-y-2 rounded-lg border border-dashed p-3">
+                  <div className="flex items-center justify-between">
+                    <Label>Medida de Receita (Nível 3)</Label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setNewItem({ ...newItem, showRecipeUnit: false, recipe_unit: '', recipe_units_per_consumption: 0 })}
+                    >
+                      Remover
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Cada <strong>{getUnitLabel(newItem.sub_unit || 'un')}</strong> rende quantas unidades de receita?
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      placeholder="Ex: 20"
+                      value={newItem.recipe_units_per_consumption || ''}
+                      onChange={(e) =>
+                        setNewItem({ ...newItem, recipe_units_per_consumption: Number(e.target.value) })
+                      }
+                    />
+                    <Select
+                      value={newItem.recipe_unit || 'fatia'}
+                      onValueChange={(value) => setNewItem({ ...newItem, recipe_unit: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Unidade de receita" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {GASTRO_UNIT_GROUPS.map((group) => (
+                          <div key={group.label}>
+                            <p className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">{group.label}</p>
+                            {group.units.map((u) => (
+                              <SelectItem key={u.value} value={u.value}>
+                                {u.label}
+                              </SelectItem>
+                            ))}
+                          </div>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {newItem.recipe_units_per_consumption > 0 && (
+                    <div className="space-y-1">
+                      <p className="text-xs text-primary">
+                        1 {getUnitLabel(newItem.sub_unit || 'un')} = {newItem.recipe_units_per_consumption} {getUnitLabel(newItem.recipe_unit || 'fatia')}
+                      </p>
+                      <p className="text-xs font-medium text-primary">
+                        Total: 1 {getUnitLabel(newItem.unit)} = {newItem.units_per_package * newItem.recipe_units_per_consumption} {getUnitLabel(newItem.recipe_unit || 'fatia')}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
               {/* Direct Sale */}
               <div className="flex items-center space-x-3 rounded-lg border p-4">
                 <Checkbox
