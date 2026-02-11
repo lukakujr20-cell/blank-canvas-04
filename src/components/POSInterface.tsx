@@ -19,6 +19,14 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import {
   Drawer,
   DrawerContent,
   DrawerHeader,
@@ -167,11 +175,12 @@ export default function POSInterface({
   onOrderUpdated,
   currentTotal,
 }: POSInterfaceProps) {
-  const { user } = useAuth();
+  const { user, isHost, isSuperAdmin } = useAuth();
   const { t } = useLanguage();
   const { formatCurrency } = useCurrency();
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  const canManageCategories = isHost || isSuperAdmin;
 
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [directSaleItems, setDirectSaleItems] = useState<Item[]>([]);
@@ -189,6 +198,8 @@ export default function POSInterface({
   const [sending, setSending] = useState(false);
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
   const [liveTotal, setLiveTotal] = useState(currentTotal);
+  const [newCatDialogOpen, setNewCatDialogOpen] = useState(false);
+  const [newCatName, setNewCatName] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -229,6 +240,30 @@ export default function POSInterface({
       console.error('Error fetching POS data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const addCategory = async () => {
+    const trimmed = newCatName.trim();
+    if (!trimmed) return;
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('restaurant_id')
+        .eq('id', user!.id)
+        .single();
+      const { error } = await supabase.from('pos_categories').insert({
+        name: trimmed,
+        restaurant_id: (profile as any)?.restaurant_id || null,
+      });
+      if (error) throw error;
+      toast({ title: t('common.success') });
+      setNewCatName('');
+      setNewCatDialogOpen(false);
+      fetchData();
+    } catch (err) {
+      console.error(err);
+      toast({ title: t('common.error'), variant: 'destructive' });
     }
   };
 
@@ -578,6 +613,21 @@ export default function POSInterface({
                     </button>
                   );
                 })}
+
+                {/* Add Category button */}
+                {canManageCategories && (
+                  <button
+                    className="flex flex-col items-center gap-2 min-w-[64px] shrink-0 group"
+                    onClick={() => setNewCatDialogOpen(true)}
+                  >
+                    <div className="h-16 w-16 rounded-full flex items-center justify-center border-2 border-dashed border-muted-foreground/40 hover:border-primary transition-colors group-hover:scale-105">
+                      <Plus className="h-7 w-7 text-muted-foreground group-hover:text-primary transition-colors" />
+                    </div>
+                    <span className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+                      {t('common.add') || 'Adicionar'}
+                    </span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -710,6 +760,36 @@ export default function POSInterface({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Add Category Dialog */}
+      <Dialog open={newCatDialogOpen} onOpenChange={setNewCatDialogOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t('pos.add_category') || 'Nova Categoria'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>{t('common.name') || 'Nome'}</Label>
+              <Input
+                placeholder="Ex: Bebidas, Lanches..."
+                value={newCatName}
+                onChange={(e) => setNewCatName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && addCategory()}
+                autoFocus
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNewCatDialogOpen(false)}>
+              {t('common.cancel')}
+            </Button>
+            <Button onClick={addCategory} disabled={!newCatName.trim()}>
+              <Plus className="h-4 w-4 mr-1" />
+              {t('common.add') || 'Adicionar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
