@@ -257,13 +257,15 @@ export default function POSInterface({
         restaurant_id: (profile as any)?.restaurant_id || null,
       });
       if (error) throw error;
-      toast({ title: t('common.success') });
+      toast({ title: t('pos.category_created') });
       setNewCatName('');
       setNewCatDialogOpen(false);
-      fetchData();
+      // Immediately refetch to update category bar
+      const { data: freshCats } = await supabase.from('pos_categories').select('*').order('name');
+      if (freshCats) setPosCategories(freshCats);
     } catch (err) {
       console.error(err);
-      toast({ title: t('common.error'), variant: 'destructive' });
+      toast({ title: t('pos.category_error'), variant: 'destructive' });
     }
   };
 
@@ -279,12 +281,8 @@ export default function POSInterface({
     })),
   ];
 
-  const productPosCategories = (() => {
-    const catIds = new Set<string>();
-    for (const d of dishes) { if (d.pos_category_id) catIds.add(d.pos_category_id); }
-    for (const i of directSaleItems) { if (i.pos_category_id) catIds.add(i.pos_category_id); }
-    return posCategories.filter(c => catIds.has(c.id));
-  })();
+  // Show ALL pos categories (so newly created ones appear immediately)
+  const displayPosCategories = posCategories;
 
   const filteredProducts = allProducts.filter((product) => {
     const matchesSearch = !searchQuery || product.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -564,17 +562,17 @@ export default function POSInterface({
                   className="flex flex-col items-center gap-2 min-w-[64px] shrink-0 group"
                   onClick={() => setSelectedCategory(null)}
                 >
-                  <div
-                    className={cn(
-                      "h-16 w-16 rounded-full flex items-center justify-center transition-all shadow-md",
-                      selectedCategory === null
-                        ? "ring-3 ring-primary ring-offset-2 ring-offset-background scale-110"
-                        : "group-hover:scale-105"
-                    )}
-                    style={{ backgroundColor: 'hsl(var(--secondary))' }}
-                  >
-                    <Layers className="h-7 w-7 text-secondary-foreground" />
-                  </div>
+                    <div
+                      className={cn(
+                        "h-16 w-16 rounded-full flex items-center justify-center transition-all shadow-md",
+                        selectedCategory === null
+                          ? "ring-[3px] ring-primary scale-110 border-2 border-primary"
+                          : "group-hover:scale-105 border-2 border-transparent"
+                      )}
+                      style={{ backgroundColor: 'hsl(var(--secondary))' }}
+                    >
+                      <Layers className="h-7 w-7 text-secondary-foreground" />
+                    </div>
                   <span className={cn(
                     "text-[11px] font-bold uppercase tracking-wide leading-tight text-center",
                     selectedCategory === null ? "text-primary" : "text-muted-foreground"
@@ -583,7 +581,7 @@ export default function POSInterface({
                   </span>
                 </button>
 
-                {productPosCategories.map((cat, index) => {
+                {displayPosCategories.map((cat, index) => {
                   const Icon = getCategoryIcon(cat.name);
                   const isActive = selectedCategory === cat.id;
                   const color = getCatColor(index);
@@ -597,15 +595,15 @@ export default function POSInterface({
                         className={cn(
                           "h-16 w-16 rounded-full flex items-center justify-center transition-all shadow-md",
                           isActive
-                            ? "ring-3 ring-primary ring-offset-2 ring-offset-background scale-110"
-                            : "group-hover:scale-105"
+                            ? "ring-[3px] ring-primary scale-110 border-2 border-primary"
+                            : "group-hover:scale-105 border-2 border-transparent"
                         )}
                         style={{ backgroundColor: color }}
                       >
                         <Icon className="h-7 w-7 text-white" />
                       </div>
                       <span className={cn(
-                        "text-[11px] font-bold uppercase tracking-wide leading-tight text-center max-w-[72px] line-clamp-1",
+                        "text-[11px] font-bold uppercase tracking-wide leading-tight text-center w-[72px] line-clamp-2",
                         isActive ? "text-primary" : "text-muted-foreground"
                       )}>
                         {cat.name}
@@ -651,18 +649,18 @@ export default function POSInterface({
                   <p className="text-muted-foreground">{t('common.loading')}</p>
                 </div>
               ) : filteredProducts.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16">
+                <div className="flex flex-col items-center justify-center py-16 min-h-[200px]">
                   <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center mb-4">
                     <UtensilsCrossed className="h-10 w-10 text-muted-foreground/40" />
                   </div>
-                  <p className="text-muted-foreground font-medium">{t('pos.no_products')}</p>
+                  <p className="text-muted-foreground font-medium text-center">{t('pos.no_products')}</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                   {filteredProducts.map((product) => {
                     const ProductIcon = product.type === 'dish' ? UtensilsCrossed : Coffee;
                     // Find category color for product
-                    const catIdx = productPosCategories.findIndex(c => c.id === product.pos_category_id);
+                    const catIdx = displayPosCategories.findIndex(c => c.id === product.pos_category_id);
                     const iconBgColor = catIdx >= 0 ? getCatColor(catIdx) : 'hsl(var(--muted))';
 
                     return (
