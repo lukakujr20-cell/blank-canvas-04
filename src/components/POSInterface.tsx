@@ -6,11 +6,9 @@ import { useCurrency } from '@/contexts/CurrencyContext';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,9 +46,9 @@ import {
   Cherry,
   Soup,
   Beef,
-  Dessert,
   Beer,
   Milk,
+  Layers,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -74,55 +72,6 @@ interface Item {
   units_per_package: number;
   category_id: string | null;
   pos_category_id?: string | null;
-}
-
-// Map category names to food icons for visual display
-const CATEGORY_ICON_MAP: Record<string, LucideIcon> = {
-  lanches: Sandwich,
-  lanche: Sandwich,
-  hamburger: Sandwich,
-  hamburguer: Sandwich,
-  acompanhamentos: Salad,
-  acompanhams: Salad,
-  salada: Salad,
-  saladas: Salad,
-  porções: Beef,
-  porcoes: Beef,
-  porção: Beef,
-  comidas: UtensilsCrossed,
-  comida: UtensilsCrossed,
-  pratos: UtensilsCrossed,
-  prato: UtensilsCrossed,
-  'pratos principais': UtensilsCrossed,
-  bebidas: CupSoda,
-  bebida: CupSoda,
-  drinks: CupSoda,
-  pizza: Pizza,
-  pizzas: Pizza,
-  açaí: Cherry,
-  acai: Cherry,
-  sobremesas: Dessert,
-  sobremesa: Dessert,
-  doces: IceCream,
-  sorvetes: IceCream,
-  sorvete: IceCream,
-  café: Coffee,
-  cafes: Coffee,
-  sucos: CupSoda,
-  suco: CupSoda,
-  cerveja: Beer,
-  cervejas: Beer,
-  vinhos: Wine,
-  vinho: Wine,
-  milkshakes: Milk,
-  milkshake: Milk,
-  entradas: Soup,
-  entrada: Soup,
-};
-
-function getCategoryIcon(categoryName: string): LucideIcon {
-  const key = categoryName.toLowerCase().trim();
-  return CATEGORY_ICON_MAP[key] || UtensilsCrossed;
 }
 
 interface PosCategory {
@@ -167,6 +116,47 @@ interface POSInterfaceProps {
   tableId: string | null;
   onOrderUpdated: () => void;
   currentTotal: number;
+}
+
+// Map category names to food icons
+const CATEGORY_ICON_MAP: Record<string, LucideIcon> = {
+  lanches: Sandwich, lanche: Sandwich, hamburger: Sandwich, hamburguer: Sandwich,
+  acompanhamentos: Salad, salada: Salad, saladas: Salad,
+  porções: Beef, porcoes: Beef, porção: Beef,
+  comidas: UtensilsCrossed, comida: UtensilsCrossed, pratos: UtensilsCrossed, prato: UtensilsCrossed,
+  'pratos principais': UtensilsCrossed,
+  bebidas: CupSoda, bebida: CupSoda, drinks: CupSoda,
+  pizza: Pizza, pizzas: Pizza,
+  açaí: Cherry, acai: Cherry,
+  sobremesas: IceCream, sobremesa: IceCream, doces: IceCream,
+  sorvetes: IceCream, sorvete: IceCream,
+  café: Coffee, cafes: Coffee,
+  sucos: CupSoda, suco: CupSoda,
+  cerveja: Beer, cervejas: Beer,
+  vinhos: Wine, vinho: Wine,
+  milkshakes: Milk, milkshake: Milk,
+  entradas: Soup, entrada: Soup,
+};
+
+function getCategoryIcon(categoryName: string): LucideIcon {
+  const key = categoryName.toLowerCase().trim();
+  return CATEGORY_ICON_MAP[key] || UtensilsCrossed;
+}
+
+// Vibrant color palette for category circles (CSS variable indices)
+const POS_CAT_COLORS = [
+  'hsl(var(--pos-cat-1))', // orange
+  'hsl(var(--pos-cat-2))', // green
+  'hsl(var(--pos-cat-3))', // red
+  'hsl(var(--pos-cat-4))', // blue
+  'hsl(var(--pos-cat-5))', // purple
+  'hsl(var(--pos-cat-6))', // yellow
+  'hsl(var(--pos-cat-7))', // pink
+  'hsl(var(--pos-cat-8))', // teal
+];
+
+function getCatColor(index: number): string {
+  return POS_CAT_COLORS[index % POS_CAT_COLORS.length];
 }
 
 export default function POSInterface({
@@ -245,93 +235,58 @@ export default function POSInterface({
   // Combine dishes and direct sale items for display
   const allProducts = [
     ...dishes.map((d) => ({
-      id: d.id,
-      name: d.name,
-      description: d.description,
-      price: d.price,
-      type: 'dish' as const,
-      pos_category_id: d.pos_category_id,
+      id: d.id, name: d.name, description: d.description, price: d.price,
+      type: 'dish' as const, pos_category_id: d.pos_category_id,
     })),
     ...directSaleItems.map((i) => ({
-      id: i.id,
-      name: i.name,
-      description: null,
-      price: i.price || 0,
-      type: 'item' as const,
-      pos_category_id: i.pos_category_id,
+      id: i.id, name: i.name, description: null, price: i.price || 0,
+      type: 'item' as const, pos_category_id: i.pos_category_id,
     })),
   ];
 
-  // Get POS categories that have products
   const productPosCategories = (() => {
     const catIds = new Set<string>();
-    for (const d of dishes) {
-      if (d.pos_category_id) catIds.add(d.pos_category_id);
-    }
-    for (const i of directSaleItems) {
-      if (i.pos_category_id) catIds.add(i.pos_category_id);
-    }
+    for (const d of dishes) { if (d.pos_category_id) catIds.add(d.pos_category_id); }
+    for (const i of directSaleItems) { if (i.pos_category_id) catIds.add(i.pos_category_id); }
     return posCategories.filter(c => catIds.has(c.id));
   })();
 
   const filteredProducts = allProducts.filter((product) => {
-    const matchesSearch =
-      !searchQuery ||
-      product.name.toLowerCase().includes(searchQuery.toLowerCase());
-
+    const matchesSearch = !searchQuery || product.name.toLowerCase().includes(searchQuery.toLowerCase());
     if (selectedCategory) {
       if (product.pos_category_id !== selectedCategory) return false;
     }
-
     return matchesSearch;
   });
 
   const validateStockForDish = (dishId: string, quantity: number): StockIssue[] => {
     const issues: StockIssue[] = [];
     const dishSheets = technicalSheets.filter((ts) => ts.dish_id === dishId);
-
     for (const sheet of dishSheets) {
       const item = items.find((i) => i.id === sheet.item_id);
       if (!item) continue;
-
       const neededUnits = sheet.quantity_per_sale * quantity;
       const neededPackages = neededUnits / item.units_per_package;
-
       if ((item.current_stock || 0) < neededPackages) {
-        issues.push({
-          itemName: item.name,
-          needed: neededPackages,
-          available: item.current_stock || 0,
-          unit: item.unit,
-        });
+        issues.push({ itemName: item.name, needed: neededPackages, available: item.current_stock || 0, unit: item.unit });
       }
     }
-
     return issues;
   };
 
   const validateStockForItem = (itemId: string, quantity: number): StockIssue[] => {
     const item = items.find((i) => i.id === itemId);
     if (!item) return [];
-
     if ((item.current_stock || 0) < quantity) {
-      return [{
-        itemName: item.name,
-        needed: quantity,
-        available: item.current_stock || 0,
-        unit: item.unit,
-      }];
+      return [{ itemName: item.name, needed: quantity, available: item.current_stock || 0, unit: item.unit }];
     }
-
     return [];
   };
 
   const addToCart = (product: typeof allProducts[0]) => {
     let issues: StockIssue[] = [];
     const existingCartItem = cart.find(
-      (c) =>
-        (product.type === 'dish' && c.dishId === product.id) ||
-        (product.type === 'item' && c.itemId === product.id)
+      (c) => (product.type === 'dish' && c.dishId === product.id) || (product.type === 'item' && c.itemId === product.id)
     );
     const newQuantity = (existingCartItem?.quantity || 0) + 1;
 
@@ -341,37 +296,21 @@ export default function POSInterface({
       issues = validateStockForItem(product.id, newQuantity);
     }
 
-    if (issues.length > 0) {
-      setStockIssues(issues);
-      setStockAlertOpen(true);
-      return;
-    }
+    if (issues.length > 0) { setStockIssues(issues); setStockAlertOpen(true); return; }
 
     setCart((prev) => {
       const existing = prev.find(
-        (c) =>
-          (product.type === 'dish' && c.dishId === product.id) ||
-          (product.type === 'item' && c.itemId === product.id)
+        (c) => (product.type === 'dish' && c.dishId === product.id) || (product.type === 'item' && c.itemId === product.id)
       );
-
       if (existing) {
-        return prev.map((c) =>
-          c.id === existing.id ? { ...c, quantity: c.quantity + 1 } : c
-        );
+        return prev.map((c) => c.id === existing.id ? { ...c, quantity: c.quantity + 1 } : c);
       }
-
-      return [
-        ...prev,
-        {
-          id: `cart_${Date.now()}`,
-          name: product.name,
-          quantity: 1,
-          price: product.price,
-          isDish: product.type === 'dish',
-          dishId: product.type === 'dish' ? product.id : undefined,
-          itemId: product.type === 'item' ? product.id : undefined,
-        },
-      ];
+      return [...prev, {
+        id: `cart_${Date.now()}`, name: product.name, quantity: 1, price: product.price,
+        isDish: product.type === 'dish',
+        dishId: product.type === 'dish' ? product.id : undefined,
+        itemId: product.type === 'item' ? product.id : undefined,
+      }];
     });
   };
 
@@ -379,31 +318,15 @@ export default function POSInterface({
     setCart((prev) => {
       const item = prev.find((c) => c.id === cartId);
       if (!item) return prev;
-
       const newQuantity = item.quantity + delta;
-
-      if (newQuantity <= 0) {
-        return prev.filter((c) => c.id !== cartId);
-      }
-
+      if (newQuantity <= 0) return prev.filter((c) => c.id !== cartId);
       if (delta > 0) {
         let issues: StockIssue[] = [];
-        if (item.dishId) {
-          issues = validateStockForDish(item.dishId, newQuantity);
-        } else if (item.itemId) {
-          issues = validateStockForItem(item.itemId, newQuantity);
-        }
-
-        if (issues.length > 0) {
-          setStockIssues(issues);
-          setStockAlertOpen(true);
-          return prev;
-        }
+        if (item.dishId) issues = validateStockForDish(item.dishId, newQuantity);
+        else if (item.itemId) issues = validateStockForItem(item.itemId, newQuantity);
+        if (issues.length > 0) { setStockIssues(issues); setStockAlertOpen(true); return prev; }
       }
-
-      return prev.map((c) =>
-        c.id === cartId ? { ...c, quantity: newQuantity } : c
-      );
+      return prev.map((c) => c.id === cartId ? { ...c, quantity: newQuantity } : c);
     });
   };
 
@@ -412,100 +335,62 @@ export default function POSInterface({
   };
 
   const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const sendToKitchen = async () => {
     if (!user || cart.length === 0) return;
-
     setSending(true);
-
     try {
       let newTotal = liveTotal;
-
       for (const cartItem of cart) {
         const itemStatus = cartItem.isDish ? 'pending' : 'ready';
-
         const { data: orderItem, error: itemError } = await supabase
           .from('order_items')
           .insert({
-            order_id: orderId,
-            dish_id: cartItem.dishId || null,
-            dish_name: cartItem.name,
-            quantity: cartItem.quantity,
-            unit_price: cartItem.price,
-            status: itemStatus,
-            notes: cartItem.notes || null,
-            sent_at: new Date().toISOString(),
+            order_id: orderId, dish_id: cartItem.dishId || null, dish_name: cartItem.name,
+            quantity: cartItem.quantity, unit_price: cartItem.price, status: itemStatus,
+            notes: cartItem.notes || null, sent_at: new Date().toISOString(),
           })
-          .select()
-          .single();
-
+          .select().single();
         if (itemError) throw itemError;
 
         if (cartItem.dishId) {
-          const dishSheets = technicalSheets.filter(
-            (ts) => ts.dish_id === cartItem.dishId
-          );
-
+          const dishSheets = technicalSheets.filter((ts) => ts.dish_id === cartItem.dishId);
           for (const sheet of dishSheets) {
             const item = items.find((i) => i.id === sheet.item_id);
             if (!item) continue;
-
             const neededUnits = sheet.quantity_per_sale * cartItem.quantity;
             const neededPackages = neededUnits / item.units_per_package;
             const newStock = (item.current_stock || 0) - neededPackages;
-
-            await supabase
-              .from('items')
-              .update({
-                current_stock: newStock,
-                last_count_date: new Date().toISOString().split('T')[0],
-                last_counted_by: user.id,
-              })
-              .eq('id', item.id);
-
+            await supabase.from('items').update({
+              current_stock: newStock, last_count_date: new Date().toISOString().split('T')[0], last_counted_by: user.id,
+            }).eq('id', item.id);
             await supabase.from('stock_history').insert({
-              item_id: item.id,
-              previous_stock: item.current_stock,
-              new_stock: newStock,
-              changed_by: user.id,
-              movement_type: 'withdrawal',
+              item_id: item.id, previous_stock: item.current_stock, new_stock: newStock,
+              changed_by: user.id, movement_type: 'withdrawal',
               reason: `${t('dining.sale_reason')}: ${cartItem.name} x${cartItem.quantity} - ${orderLabel}`,
-              order_id: orderId,
-              order_item_id: orderItem.id,
+              order_id: orderId, order_item_id: orderItem.id,
             });
           }
         } else if (cartItem.itemId) {
           const item = items.find((i) => i.id === cartItem.itemId);
           if (item) {
             const newStock = (item.current_stock || 0) - cartItem.quantity;
-
-            await supabase
-              .from('items')
-              .update({
-                current_stock: newStock,
-                last_count_date: new Date().toISOString().split('T')[0],
-                last_counted_by: user.id,
-              })
-              .eq('id', item.id);
-
+            await supabase.from('items').update({
+              current_stock: newStock, last_count_date: new Date().toISOString().split('T')[0], last_counted_by: user.id,
+            }).eq('id', item.id);
             await supabase.from('stock_history').insert({
-              item_id: item.id,
-              previous_stock: item.current_stock,
-              new_stock: newStock,
-              changed_by: user.id,
-              movement_type: 'withdrawal',
+              item_id: item.id, previous_stock: item.current_stock, new_stock: newStock,
+              changed_by: user.id, movement_type: 'withdrawal',
               reason: `${t('pos.direct_sale')}: ${cartItem.name} x${cartItem.quantity} - ${orderLabel}`,
-              order_id: orderId,
-              order_item_id: orderItem.id,
+              order_id: orderId, order_item_id: orderItem.id,
             });
           }
         }
-
         newTotal += cartItem.price * cartItem.quantity;
       }
 
       await supabase.from('orders').update({ total: newTotal }).eq('id', orderId);
-
       toast({ title: t('pos.sent_to_kitchen') });
       setCart([]);
       setLiveTotal(newTotal);
@@ -513,94 +398,76 @@ export default function POSInterface({
       onClose();
     } catch (error) {
       console.error('Error sending to kitchen:', error);
-      toast({
-        title: t('common.error'),
-        description: t('pos.send_error'),
-        variant: 'destructive',
-      });
+      toast({ title: t('common.error'), description: t('pos.send_error'), variant: 'destructive' });
     } finally {
       setSending(false);
     }
   };
 
-  // Cart content (shared between sidebar and drawer)
+  // ── Cart Content (shared between sidebar and drawer) ──
   const cartContent = (
     <>
       <ScrollArea className="flex-1">
         {cart.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-            <ShoppingCart className="h-12 w-12 text-muted-foreground/50" />
-            <p className="mt-4 text-muted-foreground">{t('pos.cart_empty')}</p>
+            <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center mb-4">
+              <ShoppingCart className="h-10 w-10 text-muted-foreground/40" />
+            </div>
+            <p className="text-muted-foreground font-medium">{t('pos.cart_empty')}</p>
           </div>
         ) : (
-          <div className="p-4 space-y-3">
+          <div className="p-3 space-y-2">
             {cart.map((item) => (
-              <Card key={item.id}>
-                <CardContent className="p-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">
-                        {item.name}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {formatCurrency(item.price)} cada
-                      </p>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 shrink-0"
-                      onClick={() => removeFromCart(item.id)}
+              <div key={item.id} className="bg-card rounded-lg p-3 border">
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <p className="font-semibold text-sm leading-tight flex-1">{item.name}</p>
+                  <button onClick={() => removeFromCart(item.id)} className="text-destructive hover:text-destructive/80 p-0.5">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => updateCartQuantity(item.id, -1)}
+                      className="h-8 w-8 rounded-full bg-muted flex items-center justify-center hover:bg-muted-foreground/20 transition-colors"
                     >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                      <Minus className="h-4 w-4" />
+                    </button>
+                    <span className="w-8 text-center font-bold text-base">{item.quantity}</span>
+                    <button
+                      onClick={() => updateCartQuantity(item.id, 1)}
+                      className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
                   </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => updateCartQuantity(item.id, -1)}
-                      >
-                        <Minus className="h-4 w-4" />
-                      </Button>
-                      <span className="w-8 text-center font-medium">
-                        {item.quantity}
-                      </span>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => updateCartQuantity(item.id, 1)}
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <p className="font-bold">
-                      {formatCurrency(item.price * item.quantity)}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+                  <p className="font-bold text-base">{formatCurrency(item.price * item.quantity)}</p>
+                </div>
+              </div>
             ))}
           </div>
         )}
       </ScrollArea>
 
       {/* Cart Footer */}
-      <div className="p-4 border-t bg-background space-y-3">
-        <div className="flex items-center justify-between text-lg font-bold">
+      <div className="p-4 border-t bg-card space-y-3">
+        {liveTotal > 0 && (
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <span>{t('pos.current_total')}</span>
+            <span>{formatCurrency(liveTotal)}</span>
+          </div>
+        )}
+        <div className="flex items-center justify-between text-sm">
           <span>{t('pos.subtotal')}</span>
-          <span>{formatCurrency(cartTotal)}</span>
+          <span className="font-semibold">{formatCurrency(cartTotal)}</span>
         </div>
-        <Separator />
+        <div className="h-px bg-border" />
         <div className="flex items-center justify-between text-xl font-bold text-primary">
           <span>{t('pos.new_total')}</span>
           <span>{formatCurrency(liveTotal + cartTotal)}</span>
         </div>
         <Button
-          className="w-full h-14 text-lg"
+          className="w-full h-14 text-base font-bold rounded-xl shadow-lg"
           size="lg"
           disabled={cart.length === 0 || sending}
           onClick={sendToKitchen}
@@ -616,106 +483,96 @@ export default function POSInterface({
     <>
       {/* Full-page POS layout */}
       <div className="fixed inset-0 z-50 bg-background flex flex-col">
-        {/* Header */}
-        <div className="p-4 border-b shrink-0 bg-background">
+        {/* ── Header ── */}
+        <div className="px-4 py-3 border-b shrink-0 bg-card shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" onClick={onClose}>
+              <Button variant="ghost" size="icon" className="rounded-full" onClick={onClose}>
                 <ChevronLeft className="h-5 w-5" />
               </Button>
               <div>
-                <h1 className="text-xl font-semibold">
-                  {t('pos.new_order')} - {orderLabel}
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                  {t('pos.add_items_desc')}
-                </p>
+                <h1 className="text-lg font-bold">{orderLabel}</h1>
+                <p className="text-xs text-muted-foreground">{t('pos.add_items_desc')}</p>
               </div>
             </div>
 
-            {/* Mobile cart button */}
-            {isMobile && (
+            {isMobile ? (
               <Button
-                variant="outline"
-                className="relative"
+                variant="default"
+                size="sm"
+                className="relative rounded-full px-3"
                 onClick={() => setCartDrawerOpen(true)}
               >
-                <ShoppingCart className="h-5 w-5" />
-                {cart.length > 0 && (
-                  <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs">
-                    {cart.length}
-                  </Badge>
+                <ShoppingCart className="h-4 w-4 mr-1" />
+                {cartItemCount > 0 && (
+                  <span className="font-bold">{cartItemCount}</span>
                 )}
               </Button>
-            )}
-
-            {!isMobile && (
-              <Badge variant="outline" className="text-lg px-4 py-2">
+            ) : (
+              <Badge variant="outline" className="text-base px-4 py-2 font-bold">
                 {t('pos.current_total')}: {formatCurrency(liveTotal)}
               </Badge>
             )}
           </div>
         </div>
 
-        {/* Main Content */}
+        {/* ── Main Content ── */}
         <div className="flex-1 flex overflow-hidden">
           {/* Products Area */}
           <div className="flex-1 flex flex-col overflow-hidden">
-            {/* Horizontal Category Bar - like reference image */}
-            <div className="border-b shrink-0 bg-muted/20">
-              <div className="flex gap-1 overflow-x-auto p-3 pb-2">
-                {/* "Todas" category */}
+
+            {/* ── Category Bar (Reference-faithful design) ── */}
+            <div className="shrink-0 bg-card border-b">
+              <div className="flex gap-4 overflow-x-auto px-4 py-4 scrollbar-none">
+                {/* "Todos" button */}
                 <button
-                  className={cn(
-                    "flex flex-col items-center gap-1.5 px-3 py-2 rounded-lg min-w-[72px] transition-all shrink-0",
-                    selectedCategory === null
-                      ? "bg-primary text-primary-foreground shadow-md"
-                      : "hover:bg-muted"
-                  )}
+                  className="flex flex-col items-center gap-2 min-w-[64px] shrink-0 group"
                   onClick={() => setSelectedCategory(null)}
                 >
-                  <div className={cn(
-                    "h-12 w-12 rounded-full flex items-center justify-center",
-                    selectedCategory === null
-                      ? "bg-primary-foreground/20"
-                      : "bg-primary/10"
-                  )}>
-                    <UtensilsCrossed className={cn(
-                      "h-6 w-6",
-                      selectedCategory === null ? "text-primary-foreground" : "text-primary"
-                    )} />
+                  <div
+                    className={cn(
+                      "h-16 w-16 rounded-full flex items-center justify-center transition-all shadow-md",
+                      selectedCategory === null
+                        ? "ring-3 ring-primary ring-offset-2 ring-offset-background scale-110"
+                        : "group-hover:scale-105"
+                    )}
+                    style={{ backgroundColor: 'hsl(var(--secondary))' }}
+                  >
+                    <Layers className="h-7 w-7 text-secondary-foreground" />
                   </div>
-                  <span className="text-[10px] font-bold uppercase leading-tight text-center">
+                  <span className={cn(
+                    "text-[11px] font-bold uppercase tracking-wide leading-tight text-center",
+                    selectedCategory === null ? "text-primary" : "text-muted-foreground"
+                  )}>
                     {t('pos.all')}
                   </span>
                 </button>
 
-                {productPosCategories.map((cat) => {
+                {productPosCategories.map((cat, index) => {
                   const Icon = getCategoryIcon(cat.name);
                   const isActive = selectedCategory === cat.id;
+                  const color = getCatColor(index);
                   return (
                     <button
                       key={cat.id}
-                      className={cn(
-                        "flex flex-col items-center gap-1.5 px-3 py-2 rounded-lg min-w-[72px] transition-all shrink-0",
-                        isActive
-                          ? "bg-primary text-primary-foreground shadow-md"
-                          : "hover:bg-muted"
-                      )}
+                      className="flex flex-col items-center gap-2 min-w-[64px] shrink-0 group"
                       onClick={() => setSelectedCategory(isActive ? null : cat.id)}
                     >
-                      <div className={cn(
-                        "h-12 w-12 rounded-full flex items-center justify-center",
-                        isActive
-                          ? "bg-primary-foreground/20"
-                          : "bg-primary/10"
-                      )}>
-                        <Icon className={cn(
-                          "h-6 w-6",
-                          isActive ? "text-primary-foreground" : "text-primary"
-                        )} />
+                      <div
+                        className={cn(
+                          "h-16 w-16 rounded-full flex items-center justify-center transition-all shadow-md",
+                          isActive
+                            ? "ring-3 ring-primary ring-offset-2 ring-offset-background scale-110"
+                            : "group-hover:scale-105"
+                        )}
+                        style={{ backgroundColor: color }}
+                      >
+                        <Icon className="h-7 w-7 text-white" />
                       </div>
-                      <span className="text-[10px] font-bold uppercase leading-tight text-center max-w-[64px] line-clamp-1">
+                      <span className={cn(
+                        "text-[11px] font-bold uppercase tracking-wide leading-tight text-center max-w-[72px] line-clamp-1",
+                        isActive ? "text-primary" : "text-muted-foreground"
+                      )}>
                         {cat.name}
                       </span>
                     </button>
@@ -724,52 +581,68 @@ export default function POSInterface({
               </div>
             </div>
 
-            {/* Search Bar */}
-            <div className="p-3 border-b shrink-0">
+            {/* ── Search Bar ── */}
+            <div className="px-4 py-3 shrink-0">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder={t('pos.search_products')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 rounded-xl bg-muted/50 border-0 focus-visible:ring-primary"
                 />
               </div>
             </div>
 
-            {/* Products Grid */}
-            <ScrollArea className="flex-1 p-3">
+            {/* ── Products Grid ── */}
+            <ScrollArea className="flex-1 px-4 pb-4">
               {loading ? (
                 <div className="flex items-center justify-center py-16">
                   <p className="text-muted-foreground">{t('common.loading')}</p>
                 </div>
               ) : filteredProducts.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16">
-                  <UtensilsCrossed className="h-12 w-12 text-muted-foreground/50" />
-                  <p className="mt-4 text-muted-foreground">{t('pos.no_products')}</p>
+                  <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center mb-4">
+                    <UtensilsCrossed className="h-10 w-10 text-muted-foreground/40" />
+                  </div>
+                  <p className="text-muted-foreground font-medium">{t('pos.no_products')}</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                   {filteredProducts.map((product) => {
                     const ProductIcon = product.type === 'dish' ? UtensilsCrossed : Coffee;
+                    // Find category color for product
+                    const catIdx = productPosCategories.findIndex(c => c.id === product.pos_category_id);
+                    const iconBgColor = catIdx >= 0 ? getCatColor(catIdx) : 'hsl(var(--muted))';
+
                     return (
-                      <Card
+                      <button
                         key={`${product.type}-${product.id}`}
-                        className="cursor-pointer transition-all hover:scale-105 hover:shadow-lg active:scale-95"
+                        className="bg-card rounded-xl border shadow-sm hover:shadow-md active:scale-95 transition-all text-left overflow-hidden group"
                         onClick={() => addToCart(product)}
                       >
-                        <CardContent className="p-3 flex flex-col items-center text-center">
-                          <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center mb-2">
-                            <ProductIcon className="h-7 w-7 text-primary" />
+                        {/* Product image/icon area */}
+                        <div
+                          className="w-full aspect-[4/3] flex items-center justify-center rounded-t-xl"
+                          style={{ backgroundColor: iconBgColor + '22' }}
+                        >
+                          <div
+                            className="h-16 w-16 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform"
+                            style={{ backgroundColor: iconBgColor }}
+                          >
+                            <ProductIcon className="h-8 w-8 text-white" />
                           </div>
-                          <h3 className="font-medium text-xs line-clamp-2 leading-tight">
+                        </div>
+                        {/* Product info */}
+                        <div className="p-3">
+                          <h3 className="font-semibold text-sm line-clamp-2 leading-tight mb-1">
                             {product.name}
                           </h3>
-                          <p className="mt-1 font-bold text-sm text-primary">
+                          <p className="font-bold text-base text-primary">
                             {formatCurrency(product.price)}
                           </p>
-                        </CardContent>
-                      </Card>
+                        </div>
+                      </button>
                     );
                   })}
                 </div>
@@ -777,15 +650,15 @@ export default function POSInterface({
             </ScrollArea>
           </div>
 
-          {/* Desktop: Cart Sidebar */}
+          {/* ── Desktop: Cart Sidebar ── */}
           {!isMobile && (
-            <div id="pos-cart-sidebar" className="w-80 border-l flex flex-col bg-muted/30">
-              <div className="p-4 border-b bg-background">
+            <div className="w-[340px] border-l flex flex-col bg-background">
+              <div className="p-4 border-b bg-card">
                 <div className="flex items-center gap-2">
-                  <ShoppingCart className="h-5 w-5" />
-                  <h3 className="font-semibold">{t('pos.cart')}</h3>
-                  {cart.length > 0 && (
-                    <Badge variant="secondary">{cart.length}</Badge>
+                  <ShoppingCart className="h-5 w-5 text-primary" />
+                  <h3 className="font-bold text-lg">{t('pos.cart')}</h3>
+                  {cartItemCount > 0 && (
+                    <Badge className="ml-auto">{cartItemCount}</Badge>
                   )}
                 </div>
               </div>
@@ -803,9 +676,7 @@ export default function POSInterface({
               <DrawerTitle className="flex items-center gap-2">
                 <ShoppingCart className="h-5 w-5" />
                 {t('pos.cart')}
-                {cart.length > 0 && (
-                  <Badge variant="secondary">{cart.length}</Badge>
-                )}
+                {cartItemCount > 0 && <Badge>{cartItemCount}</Badge>}
               </DrawerTitle>
               <DrawerDescription>
                 {t('pos.current_total')}: {formatCurrency(liveTotal)}
@@ -835,9 +706,7 @@ export default function POSInterface({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setStockAlertOpen(false)}>
-              OK
-            </AlertDialogAction>
+            <AlertDialogAction onClick={() => setStockAlertOpen(false)}>OK</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
