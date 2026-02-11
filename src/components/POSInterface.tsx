@@ -560,7 +560,8 @@ export default function POSInterface({
         newTotal += cartItem.price * cartItem.quantity;
       }
 
-      await supabase.from('orders').update({ total: newTotal }).eq('id', orderId);
+      // Update total and ensure order status is 'open' (not draft) so kitchen can see it
+      await supabase.from('orders').update({ total: newTotal, status: 'open' }).eq('id', orderId);
       toast({ title: t('pos.sent_to_kitchen') });
       setCart([]);
       setLiveTotal(newTotal);

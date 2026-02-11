@@ -94,19 +94,44 @@ export default function KitchenPanel() {
 
   const fetchKitchenOrders = async () => {
     try {
+      // Fetch open orders filtered by restaurant_id
       const { data: orders, error: ordersError } = await supabase
         .from('orders')
         .select('*')
-        .eq('status', 'open');
+        .eq('status', 'open')
+        .order('opened_at', { ascending: true });
 
       if (ordersError) throw ordersError;
+
+      // Filter by restaurant if available
+      const filteredOrders = restaurantId
+        ? (orders || []).filter(o => o.restaurant_id === restaurantId)
+        : (orders || []);
+
+      if (filteredOrders.length === 0) {
+        setKitchenOrders([]);
+        setLoading(false);
+        return;
+      }
+
+      const orderIds = filteredOrders.map(o => o.id);
 
       const { data: orderItems, error: itemsError } = await supabase
         .from('order_items')
         .select('*')
+        .in('order_id', orderIds)
         .eq('status', 'pending');
 
       if (itemsError) throw itemsError;
+
+      // Fetch items table to check direct_sale flag
+      const { data: itemsData } = await supabase
+        .from('items')
+        .select('id, direct_sale');
+
+      const directSaleIds = new Set(
+        (itemsData || []).filter(i => i.direct_sale).map(i => i.id)
+      );
 
       const { data: tables, error: tablesError } = await supabase
         .from('restaurant_tables')
@@ -116,8 +141,11 @@ export default function KitchenPanel() {
 
       const ordersWithItems: KitchenOrder[] = [];
 
-      for (const order of orders || []) {
-        const items = (orderItems || []).filter(item => item.order_id === order.id);
+      for (const order of filteredOrders) {
+        // Filter out direct sale items (they skip the kitchen)
+        const items = (orderItems || [])
+          .filter(item => item.order_id === order.id)
+          .filter(item => !item.dish_id || !directSaleIds.has(item.dish_id));
         
         if (items.length === 0) continue;
 
@@ -153,7 +181,9 @@ export default function KitchenPanel() {
   };
 
   useEffect(() => {
-    fetchKitchenOrders();
+    if (restaurantId) {
+      fetchKitchenOrders();
+    }
 
     const ordersChannel = supabase
       .channel('kitchen-orders')
@@ -177,7 +207,7 @@ export default function KitchenPanel() {
       supabase.removeChannel(ordersChannel);
       supabase.removeChannel(itemsChannel);
     };
-  }, []);
+  }, [restaurantId]);
 
   const markItemAsReady = async (itemId: string) => {
     try {
