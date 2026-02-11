@@ -186,12 +186,12 @@ export default function POSInterface({
   onOrderUpdated,
   currentTotal,
 }: POSInterfaceProps) {
-  const { user, isHost, isSuperAdmin } = useAuth();
+  const { user, isHost, isSuperAdmin, isAdmin, role } = useAuth();
   const { t } = useLanguage();
   const { formatCurrency } = useCurrency();
   const { toast } = useToast();
   const isMobile = useIsMobile();
-  const canManage = isHost || isSuperAdmin;
+  const canManage = isHost || isSuperAdmin || isAdmin;
   const navigate = useNavigate();
 
   const [dishes, setDishes] = useState<Dish[]>([]);
