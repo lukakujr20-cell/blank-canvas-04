@@ -130,10 +130,12 @@ export default function SupplierManagement() {
         if (error) throw error;
         toast({ title: t('suppliers.updated') });
       } else {
+        const { data: profile } = await supabase.from('profiles').select('restaurant_id').eq('id', user!.id).single();
+        const restaurantId = (profile as any)?.restaurant_id || null;
         const { error } = await supabase.from('suppliers').insert({
           name: formData.name.trim(),
           whatsapp: formData.whatsapp.trim(),
-          created_by: user?.id,
+          restaurant_id: restaurantId,
         });
 
         if (error) throw error;
