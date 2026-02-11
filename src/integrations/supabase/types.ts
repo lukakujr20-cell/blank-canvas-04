@@ -174,7 +174,10 @@ export type Database = {
           name: string
           pos_category_id: string | null
           price: number | null
+          recipe_unit: string | null
+          recipe_units_per_consumption: number | null
           restaurant_id: string | null
+          sub_unit: string | null
           supplier_id: string | null
           unit: string
           units_per_package: number
@@ -192,7 +195,10 @@ export type Database = {
           name: string
           pos_category_id?: string | null
           price?: number | null
+          recipe_unit?: string | null
+          recipe_units_per_consumption?: number | null
           restaurant_id?: string | null
+          sub_unit?: string | null
           supplier_id?: string | null
           unit?: string
           units_per_package?: number
@@ -210,7 +216,10 @@ export type Database = {
           name?: string
           pos_category_id?: string | null
           price?: number | null
+          recipe_unit?: string | null
+          recipe_units_per_consumption?: number | null
           restaurant_id?: string | null
+          sub_unit?: string | null
           supplier_id?: string | null
           unit?: string
           units_per_package?: number

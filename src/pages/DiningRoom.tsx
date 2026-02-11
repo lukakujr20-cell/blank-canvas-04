@@ -105,6 +105,7 @@ interface Item {
   unit: string;
   current_stock: number;
   units_per_package: number;
+  recipe_units_per_consumption: number | null;
 }
 
 interface StockIssue {
@@ -212,7 +213,7 @@ export default function DiningRoom() {
         supabase.from('order_items').select('*'),
         supabase.from('dishes').select('*').order('name'),
         supabase.from('technical_sheets').select('*'),
-        supabase.from('items').select('id, name, unit, current_stock, units_per_package'),
+        supabase.from('items').select('id, name, unit, current_stock, units_per_package, recipe_units_per_consumption'),
         supabase.from('profiles').select('id, full_name'),
       ]);
 
@@ -408,7 +409,8 @@ export default function DiningRoom() {
       if (!item) continue;
 
       const neededUnits = sheet.quantity_per_sale * quantity;
-      const neededPackages = neededUnits / item.units_per_package;
+      const totalConversion = item.units_per_package * (item.recipe_units_per_consumption || 1);
+      const neededPackages = neededUnits / totalConversion;
 
       if (item.current_stock < neededPackages) {
         issues.push({
@@ -461,7 +463,8 @@ export default function DiningRoom() {
         if (!item) continue;
 
         const neededUnits = sheet.quantity_per_sale * quantity;
-        const neededPackages = neededUnits / item.units_per_package;
+        const totalConversion = item.units_per_package * (item.recipe_units_per_consumption || 1);
+        const neededPackages = neededUnits / totalConversion;
         const newStock = item.current_stock - neededPackages;
 
         await supabase

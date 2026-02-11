@@ -147,7 +147,7 @@ export default function Dishes() {
       const [dishesRes, sheetsRes, itemsRes, categoriesRes, posCategoriesRes] = await Promise.all([
         supabase.from('dishes').select('*').order('name'),
         supabase.from('technical_sheets').select('*'),
-        supabase.from('items').select('id, name, unit, current_stock, min_stock, units_per_package').order('name'),
+        supabase.from('items').select('id, name, unit, current_stock, min_stock, units_per_package, recipe_units_per_consumption').order('name'),
         supabase.from('categories').select('id, name').order('name'),
         supabase.from('pos_categories').select('id, name').order('name'),
       ]);
@@ -367,7 +367,8 @@ export default function Dishes() {
       // Calculate needed quantity considering units_per_package
       const neededUnits = ing.quantity_per_sale * quantity;
       const unitsPerPackage = item.units_per_package || 1;
-      const neededPackages = neededUnits / unitsPerPackage;
+      const recipeConversion = (item as any).recipe_units_per_consumption || 1;
+      const neededPackages = neededUnits / (unitsPerPackage * recipeConversion);
 
       if (item.current_stock < neededPackages) {
         issues.push({
@@ -446,7 +447,8 @@ export default function Dishes() {
         // Calculate deduction considering units_per_package
         const neededUnits = ing.quantity_per_sale * saleQuantity;
         const unitsPerPackage = item.units_per_package || 1;
-        const quantityToDeduct = neededUnits / unitsPerPackage;
+        const recipeConversion = (item as any).recipe_units_per_consumption || 1;
+        const quantityToDeduct = neededUnits / (unitsPerPackage * recipeConversion);
         const newStock = item.current_stock - quantityToDeduct;
 
         // Update item stock

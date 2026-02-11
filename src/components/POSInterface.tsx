@@ -90,6 +90,7 @@ interface Item {
   units_per_package: number;
   category_id: string | null;
   pos_category_id?: string | null;
+  recipe_units_per_consumption?: number | null;
 }
 
 interface PosCategory {
@@ -431,7 +432,8 @@ export default function POSInterface({
       const item = items.find((i) => i.id === sheet.item_id);
       if (!item) continue;
       const neededUnits = sheet.quantity_per_sale * quantity;
-      const neededPackages = neededUnits / item.units_per_package;
+      const totalConversion = item.units_per_package * (item.recipe_units_per_consumption || 1);
+      const neededPackages = neededUnits / totalConversion;
       if ((item.current_stock || 0) < neededPackages) {
         issues.push({ itemName: item.name, needed: neededPackages, available: item.current_stock || 0, unit: item.unit });
       }
@@ -525,7 +527,8 @@ export default function POSInterface({
             const item = items.find((i) => i.id === sheet.item_id);
             if (!item) continue;
             const neededUnits = sheet.quantity_per_sale * cartItem.quantity;
-            const neededPackages = neededUnits / item.units_per_package;
+            const totalConversion = item.units_per_package * (item.recipe_units_per_consumption || 1);
+            const neededPackages = neededUnits / totalConversion;
             const newStock = (item.current_stock || 0) - neededPackages;
             await supabase.from('items').update({
               current_stock: newStock, last_count_date: new Date().toISOString().split('T')[0], last_counted_by: user.id,
