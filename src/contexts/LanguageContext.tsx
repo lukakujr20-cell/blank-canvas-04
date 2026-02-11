@@ -560,8 +560,13 @@ const translations: Record<Language, Record<string, string>> = {
     'pos.new_order': 'Novo Pedido',
     'pos.back': 'Voltar',
     'pos.review': 'Revisar Pedido',
+    'pos.add_category': 'Nova Categoria',
+    'pos.category_created': 'Categoria criada com sucesso!',
+    'pos.category_error': 'Erro ao criar categoria',
 
-    // Common - Kitchen role
+    // Common
+    'common.add': 'Adicionar',
+    'common.success': 'Sucesso!',
     'common.cozinha': 'Cozinha',
 
     // Export Data
@@ -1151,8 +1156,12 @@ const translations: Record<Language, Record<string, string>> = {
     'pos.new_order': 'Nuevo Pedido',
     'pos.back': 'Volver',
     'pos.review': 'Revisar Pedido',
+    'pos.add_category': 'Nueva Categoría',
+    'pos.category_created': '¡Categoría creada con éxito!',
+    'pos.category_error': 'Error al crear categoría',
 
-    // Common - Kitchen role
+    'common.add': 'Agregar',
+    'common.success': '¡Éxito!',
     'common.cozinha': 'Cocina',
 
     // Export Data
@@ -1742,8 +1751,12 @@ const translations: Record<Language, Record<string, string>> = {
     'pos.new_order': 'New Order',
     'pos.back': 'Back',
     'pos.review': 'Review Order',
+    'pos.add_category': 'New Category',
+    'pos.category_created': 'Category created successfully!',
+    'pos.category_error': 'Error creating category',
 
-    // Common - Kitchen role
+    'common.add': 'Add',
+    'common.success': 'Success!',
     'common.cozinha': 'Kitchen',
 
     // Export Data
