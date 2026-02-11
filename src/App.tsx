@@ -20,6 +20,7 @@ import Dishes from "./pages/Dishes";
 import DiningRoom from "./pages/DiningRoom";
 import ClientManagement from "./pages/ClientManagement";
 import KitchenPanel from "./pages/KitchenPanel";
+import POS from "./pages/POS";
 
 import NotFound from "./pages/NotFound";
 
@@ -49,6 +50,7 @@ const App = () => (
                   <Route path="/dining-room" element={<DiningRoom />} />
                   <Route path="/clients" element={<ClientManagement />} />
                   <Route path="/kitchen" element={<KitchenPanel />} />
+                  <Route path="/pos" element={<POS />} />
                   
                   <Route path="*" element={<NotFound />} />
                 </Routes>
