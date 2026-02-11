@@ -9,9 +9,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Switch } from '@/components/ui/switch';
 import {
   AlertDialog,
   AlertDialogAction,
+  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -26,6 +28,13 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Drawer,
   DrawerContent,
@@ -57,6 +66,7 @@ import {
   Beer,
   Milk,
   Layers,
+  Pencil,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -151,16 +161,15 @@ function getCategoryIcon(categoryName: string): LucideIcon {
   return CATEGORY_ICON_MAP[key] || UtensilsCrossed;
 }
 
-// Vibrant color palette for category circles (CSS variable indices)
 const POS_CAT_COLORS = [
-  'hsl(var(--pos-cat-1))', // orange
-  'hsl(var(--pos-cat-2))', // green
-  'hsl(var(--pos-cat-3))', // red
-  'hsl(var(--pos-cat-4))', // blue
-  'hsl(var(--pos-cat-5))', // purple
-  'hsl(var(--pos-cat-6))', // yellow
-  'hsl(var(--pos-cat-7))', // pink
-  'hsl(var(--pos-cat-8))', // teal
+  'hsl(var(--pos-cat-1))',
+  'hsl(var(--pos-cat-2))',
+  'hsl(var(--pos-cat-3))',
+  'hsl(var(--pos-cat-4))',
+  'hsl(var(--pos-cat-5))',
+  'hsl(var(--pos-cat-6))',
+  'hsl(var(--pos-cat-7))',
+  'hsl(var(--pos-cat-8))',
 ];
 
 function getCatColor(index: number): string {
@@ -180,7 +189,7 @@ export default function POSInterface({
   const { formatCurrency } = useCurrency();
   const { toast } = useToast();
   const isMobile = useIsMobile();
-  const canManageCategories = isHost || isSuperAdmin;
+  const canManage = isHost || isSuperAdmin;
 
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [directSaleItems, setDirectSaleItems] = useState<Item[]>([]);
@@ -198,8 +207,23 @@ export default function POSInterface({
   const [sending, setSending] = useState(false);
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
   const [liveTotal, setLiveTotal] = useState(currentTotal);
+
+  // Category management state
   const [newCatDialogOpen, setNewCatDialogOpen] = useState(false);
   const [newCatName, setNewCatName] = useState('');
+  const [editCatDialogOpen, setEditCatDialogOpen] = useState(false);
+  const [editCatId, setEditCatId] = useState<string | null>(null);
+  const [editCatName, setEditCatName] = useState('');
+  const [deleteCatAlertOpen, setDeleteCatAlertOpen] = useState(false);
+  const [deleteCatId, setDeleteCatId] = useState<string | null>(null);
+
+  // Product management state
+  const [productDialogOpen, setProductDialogOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<{ id: string; type: 'dish' | 'item' } | null>(null);
+  const [productName, setProductName] = useState('');
+  const [productPrice, setProductPrice] = useState('');
+  const [productPosCatId, setProductPosCatId] = useState<string>('none');
+  const [productDirectSale, setProductDirectSale] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -243,29 +267,138 @@ export default function POSInterface({
     }
   };
 
+  const getRestaurantId = async () => {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('restaurant_id')
+      .eq('id', user!.id)
+      .single();
+    return (profile as any)?.restaurant_id || null;
+  };
+
+  // ── Category CRUD ──
   const addCategory = async () => {
     const trimmed = newCatName.trim();
     if (!trimmed) return;
     try {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('restaurant_id')
-        .eq('id', user!.id)
-        .single();
+      const restaurantId = await getRestaurantId();
       const { error } = await supabase.from('pos_categories').insert({
         name: trimmed,
-        restaurant_id: (profile as any)?.restaurant_id || null,
+        restaurant_id: restaurantId,
       });
       if (error) throw error;
       toast({ title: t('pos.category_created') });
       setNewCatName('');
       setNewCatDialogOpen(false);
-      // Immediately refetch to update category bar
       const { data: freshCats } = await supabase.from('pos_categories').select('*').order('name');
       if (freshCats) setPosCategories(freshCats);
     } catch (err) {
       console.error(err);
       toast({ title: t('pos.category_error'), variant: 'destructive' });
+    }
+  };
+
+  const updateCategory = async () => {
+    const trimmed = editCatName.trim();
+    if (!trimmed || !editCatId) return;
+    try {
+      const { error } = await supabase.from('pos_categories').update({ name: trimmed }).eq('id', editCatId);
+      if (error) throw error;
+      toast({ title: t('pos.category_updated') });
+      setEditCatDialogOpen(false);
+      setEditCatId(null);
+      setEditCatName('');
+      const { data: freshCats } = await supabase.from('pos_categories').select('*').order('name');
+      if (freshCats) setPosCategories(freshCats);
+    } catch (err) {
+      console.error(err);
+      toast({ title: t('pos.category_update_error'), variant: 'destructive' });
+    }
+  };
+
+  const deleteCategory = async () => {
+    if (!deleteCatId) return;
+    try {
+      // Unlink products from this category
+      await supabase.from('dishes').update({ pos_category_id: null }).eq('pos_category_id', deleteCatId);
+      await supabase.from('items').update({ pos_category_id: null }).eq('pos_category_id', deleteCatId);
+      const { error } = await supabase.from('pos_categories').delete().eq('id', deleteCatId);
+      if (error) throw error;
+      toast({ title: t('pos.category_deleted') });
+      setDeleteCatAlertOpen(false);
+      setDeleteCatId(null);
+      if (selectedCategory === deleteCatId) setSelectedCategory(null);
+      const { data: freshCats } = await supabase.from('pos_categories').select('*').order('name');
+      if (freshCats) setPosCategories(freshCats);
+    } catch (err) {
+      console.error(err);
+      toast({ title: t('pos.category_delete_error'), variant: 'destructive' });
+    }
+  };
+
+  // ── Product CRUD ──
+  const openAddProduct = () => {
+    setEditingProduct(null);
+    setProductName('');
+    setProductPrice('');
+    setProductPosCatId(selectedCategory || 'none');
+    setProductDirectSale(false);
+    setProductDialogOpen(true);
+  };
+
+  const openEditProduct = (product: { id: string; name: string; price: number; type: 'dish' | 'item'; pos_category_id?: string | null }) => {
+    setEditingProduct({ id: product.id, type: product.type });
+    setProductName(product.name);
+    setProductPrice(String(product.price));
+    setProductPosCatId(product.pos_category_id || 'none');
+    setProductDirectSale(product.type === 'item');
+    setProductDialogOpen(true);
+  };
+
+  const saveProduct = async () => {
+    const trimmedName = productName.trim();
+    const price = parseFloat(productPrice);
+    if (!trimmedName || isNaN(price) || price <= 0) return;
+    const posCatId = productPosCatId === 'none' ? null : productPosCatId;
+    const restaurantId = await getRestaurantId();
+
+    try {
+      if (editingProduct) {
+        // Update existing
+        if (editingProduct.type === 'dish') {
+          const { error } = await supabase.from('dishes').update({
+            name: trimmedName, price, pos_category_id: posCatId,
+          }).eq('id', editingProduct.id);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase.from('items').update({
+            name: trimmedName, price, pos_category_id: posCatId,
+          }).eq('id', editingProduct.id);
+          if (error) throw error;
+        }
+      } else {
+        // Create new
+        if (productDirectSale) {
+          const { error } = await supabase.from('items').insert({
+            name: trimmedName, price, pos_category_id: posCatId,
+            direct_sale: true, restaurant_id: restaurantId,
+            unit: 'un', min_stock: 0, units_per_package: 1,
+          });
+          if (error) throw error;
+        } else {
+          const { error } = await supabase.from('dishes').insert({
+            name: trimmedName, price, pos_category_id: posCatId,
+            restaurant_id: restaurantId,
+          });
+          if (error) throw error;
+        }
+      }
+      toast({ title: t('pos.product_saved') });
+      setProductDialogOpen(false);
+      await fetchData();
+    } catch (err) {
+      console.error(err);
+      toast({ title: t('pos.product_save_error'), variant: 'destructive' });
     }
   };
 
@@ -281,7 +414,6 @@ export default function POSInterface({
     })),
   ];
 
-  // Show ALL pos categories (so newly created ones appear immediately)
   const displayPosCategories = posCategories;
 
   const filteredProducts = allProducts.filter((product) => {
@@ -554,7 +686,7 @@ export default function POSInterface({
           {/* Products Area */}
           <div className="flex-1 flex flex-col overflow-hidden">
 
-            {/* ── Category Bar (Reference-faithful design) ── */}
+            {/* ── Category Bar ── */}
             <div className="shrink-0 bg-card border-b">
               <div className="flex gap-4 overflow-x-auto px-4 py-4 scrollbar-none">
                 {/* "Todos" button */}
@@ -562,17 +694,17 @@ export default function POSInterface({
                   className="flex flex-col items-center gap-2 min-w-[64px] shrink-0 group"
                   onClick={() => setSelectedCategory(null)}
                 >
-                    <div
-                      className={cn(
-                        "h-16 w-16 rounded-full flex items-center justify-center transition-all shadow-md",
-                        selectedCategory === null
-                          ? "ring-[3px] ring-primary scale-110 border-2 border-primary"
-                          : "group-hover:scale-105 border-2 border-transparent"
-                      )}
-                      style={{ backgroundColor: 'hsl(var(--secondary))' }}
-                    >
-                      <Layers className="h-7 w-7 text-secondary-foreground" />
-                    </div>
+                  <div
+                    className={cn(
+                      "h-16 w-16 rounded-full flex items-center justify-center transition-all shadow-md",
+                      selectedCategory === null
+                        ? "ring-[3px] ring-primary scale-110 border-2 border-primary"
+                        : "group-hover:scale-105 border-2 border-transparent"
+                    )}
+                    style={{ backgroundColor: 'hsl(var(--secondary))' }}
+                  >
+                    <Layers className="h-7 w-7 text-secondary-foreground" />
+                  </div>
                   <span className={cn(
                     "text-[11px] font-bold uppercase tracking-wide leading-tight text-center",
                     selectedCategory === null ? "text-primary" : "text-muted-foreground"
@@ -586,34 +718,62 @@ export default function POSInterface({
                   const isActive = selectedCategory === cat.id;
                   const color = getCatColor(index);
                   return (
-                    <button
-                      key={cat.id}
-                      className="flex flex-col items-center gap-2 min-w-[64px] shrink-0 group"
-                      onClick={() => setSelectedCategory(isActive ? null : cat.id)}
-                    >
-                      <div
-                        className={cn(
-                          "h-16 w-16 rounded-full flex items-center justify-center transition-all shadow-md",
-                          isActive
-                            ? "ring-[3px] ring-primary scale-110 border-2 border-primary"
-                            : "group-hover:scale-105 border-2 border-transparent"
-                        )}
-                        style={{ backgroundColor: color }}
+                    <div key={cat.id} className="relative flex flex-col items-center gap-2 min-w-[64px] shrink-0 group/cat">
+                      <button
+                        className="flex flex-col items-center gap-2"
+                        onClick={() => setSelectedCategory(isActive ? null : cat.id)}
                       >
-                        <Icon className="h-7 w-7 text-white" />
-                      </div>
-                      <span className={cn(
-                        "text-[11px] font-bold uppercase tracking-wide leading-tight text-center w-[72px] line-clamp-2",
-                        isActive ? "text-primary" : "text-muted-foreground"
-                      )}>
-                        {cat.name}
-                      </span>
-                    </button>
+                        <div
+                          className={cn(
+                            "h-16 w-16 rounded-full flex items-center justify-center transition-all shadow-md",
+                            isActive
+                              ? "ring-[3px] ring-primary scale-110 border-2 border-primary"
+                              : "group-hover/cat:scale-105 border-2 border-transparent"
+                          )}
+                          style={{ backgroundColor: color }}
+                        >
+                          <Icon className="h-7 w-7 text-white" />
+                        </div>
+                        <span className={cn(
+                          "text-[11px] font-bold uppercase tracking-wide leading-tight text-center w-[72px] line-clamp-2",
+                          isActive ? "text-primary" : "text-muted-foreground"
+                        )}>
+                          {cat.name}
+                        </span>
+                      </button>
+
+                      {/* Edit/Delete overlay on hover (only for managers) */}
+                      {canManage && (
+                        <div className="absolute -top-1 -right-1 flex gap-0.5 opacity-0 group-hover/cat:opacity-100 transition-opacity z-10">
+                          <button
+                            className="h-6 w-6 rounded-full bg-card border shadow-sm flex items-center justify-center hover:bg-accent transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditCatId(cat.id);
+                              setEditCatName(cat.name);
+                              setEditCatDialogOpen(true);
+                            }}
+                          >
+                            <Pencil className="h-3 w-3 text-muted-foreground" />
+                          </button>
+                          <button
+                            className="h-6 w-6 rounded-full bg-card border shadow-sm flex items-center justify-center hover:bg-destructive/10 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteCatId(cat.id);
+                              setDeleteCatAlertOpen(true);
+                            }}
+                          >
+                            <Trash2 className="h-3 w-3 text-destructive" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   );
                 })}
 
                 {/* Add Category button */}
-                {canManageCategories && (
+                {canManage && (
                   <button
                     className="flex flex-col items-center gap-2 min-w-[64px] shrink-0 group"
                     onClick={() => setNewCatDialogOpen(true)}
@@ -622,7 +782,7 @@ export default function POSInterface({
                       <Plus className="h-7 w-7 text-muted-foreground group-hover:text-primary transition-colors" />
                     </div>
                     <span className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-                      {t('common.add') || 'Adicionar'}
+                      {t('common.add')}
                     </span>
                   </button>
                 )}
@@ -653,46 +813,82 @@ export default function POSInterface({
                   <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center mb-4">
                     <UtensilsCrossed className="h-10 w-10 text-muted-foreground/40" />
                   </div>
-                  <p className="text-muted-foreground font-medium text-center">{t('pos.no_products')}</p>
+                  <p className="text-muted-foreground font-medium text-center mb-4">{t('pos.no_products')}</p>
+                  {canManage && (
+                    <Button onClick={openAddProduct} className="rounded-xl">
+                      <Plus className="h-4 w-4 mr-2" />
+                      {t('pos.add_product')}
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                   {filteredProducts.map((product) => {
                     const ProductIcon = product.type === 'dish' ? UtensilsCrossed : Coffee;
-                    // Find category color for product
                     const catIdx = displayPosCategories.findIndex(c => c.id === product.pos_category_id);
                     const iconBgColor = catIdx >= 0 ? getCatColor(catIdx) : 'hsl(var(--muted))';
 
                     return (
-                      <button
+                      <div
                         key={`${product.type}-${product.id}`}
-                        className="bg-card rounded-xl border shadow-sm hover:shadow-md active:scale-95 transition-all text-left overflow-hidden group"
-                        onClick={() => addToCart(product)}
+                        className="relative bg-card rounded-xl border shadow-sm hover:shadow-md transition-all text-left overflow-hidden group/product"
                       >
-                        {/* Product image/icon area */}
-                        <div
-                          className="w-full aspect-[4/3] flex items-center justify-center rounded-t-xl"
-                          style={{ backgroundColor: iconBgColor + '22' }}
-                        >
-                          <div
-                            className="h-16 w-16 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform"
-                            style={{ backgroundColor: iconBgColor }}
+                        {/* Edit button for managers */}
+                        {canManage && (
+                          <button
+                            className="absolute top-2 right-2 z-10 h-7 w-7 rounded-full bg-card/90 border shadow-sm flex items-center justify-center opacity-0 group-hover/product:opacity-100 transition-opacity hover:bg-accent"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openEditProduct(product);
+                            }}
                           >
-                            <ProductIcon className="h-8 w-8 text-white" />
+                            <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                          </button>
+                        )}
+                        <button
+                          className="w-full text-left"
+                          onClick={() => addToCart(product)}
+                        >
+                          {/* Product image/icon area */}
+                          <div
+                            className="w-full aspect-[4/3] flex items-center justify-center rounded-t-xl"
+                            style={{ backgroundColor: iconBgColor + '22' }}
+                          >
+                            <div
+                              className="h-16 w-16 rounded-full flex items-center justify-center group-hover/product:scale-110 transition-transform"
+                              style={{ backgroundColor: iconBgColor }}
+                            >
+                              <ProductIcon className="h-8 w-8 text-white" />
+                            </div>
                           </div>
-                        </div>
-                        {/* Product info */}
-                        <div className="p-3">
-                          <h3 className="font-semibold text-sm line-clamp-2 leading-tight mb-1">
-                            {product.name}
-                          </h3>
-                          <p className="font-bold text-base text-primary">
-                            {formatCurrency(product.price)}
-                          </p>
-                        </div>
-                      </button>
+                          {/* Product info */}
+                          <div className="p-3">
+                            <h3 className="font-semibold text-sm line-clamp-2 leading-tight mb-1">
+                              {product.name}
+                            </h3>
+                            <p className="font-bold text-base text-primary">
+                              {formatCurrency(product.price)}
+                            </p>
+                          </div>
+                        </button>
+                      </div>
                     );
                   })}
+
+                  {/* Add Product card for managers */}
+                  {canManage && (
+                    <button
+                      className="bg-card rounded-xl border-2 border-dashed border-muted-foreground/30 hover:border-primary shadow-sm hover:shadow-md transition-all text-center overflow-hidden flex flex-col items-center justify-center min-h-[180px] group"
+                      onClick={openAddProduct}
+                    >
+                      <div className="h-16 w-16 rounded-full border-2 border-dashed border-muted-foreground/40 group-hover:border-primary flex items-center justify-center mb-3 transition-colors">
+                        <Plus className="h-8 w-8 text-muted-foreground group-hover:text-primary transition-colors" />
+                      </div>
+                      <span className="text-sm font-semibold text-muted-foreground group-hover:text-primary transition-colors">
+                        {t('pos.add_product')}
+                      </span>
+                    </button>
+                  )}
                 </div>
               )}
             </ScrollArea>
@@ -763,11 +959,11 @@ export default function POSInterface({
       <Dialog open={newCatDialogOpen} onOpenChange={setNewCatDialogOpen}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>{t('pos.add_category') || 'Nova Categoria'}</DialogTitle>
+            <DialogTitle>{t('pos.add_category')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label>{t('common.name') || 'Nome'}</Label>
+              <Label>{t('common.name')}</Label>
               <Input
                 placeholder="Ex: Bebidas, Lanches..."
                 value={newCatName}
@@ -783,7 +979,122 @@ export default function POSInterface({
             </Button>
             <Button onClick={addCategory} disabled={!newCatName.trim()}>
               <Plus className="h-4 w-4 mr-1" />
-              {t('common.add') || 'Adicionar'}
+              {t('common.add')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Category Dialog */}
+      <Dialog open={editCatDialogOpen} onOpenChange={setEditCatDialogOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t('pos.edit_category')}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>{t('common.name')}</Label>
+              <Input
+                value={editCatName}
+                onChange={(e) => setEditCatName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && updateCategory()}
+                autoFocus
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditCatDialogOpen(false)}>
+              {t('common.cancel')}
+            </Button>
+            <Button onClick={updateCategory} disabled={!editCatName.trim()}>
+              {t('common.save')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Category Confirmation */}
+      <AlertDialog open={deleteCatAlertOpen} onOpenChange={setDeleteCatAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('pos.delete_category')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('pos.confirm_delete_category')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={deleteCategory}
+            >
+              {t('common.delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Add/Edit Product Dialog */}
+      <Dialog open={productDialogOpen} onOpenChange={setProductDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingProduct ? t('pos.edit_product') : t('pos.add_product')}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>{t('pos.product_name')}</Label>
+              <Input
+                placeholder="Ex: Coca-Cola, Pizza Margherita..."
+                value={productName}
+                onChange={(e) => setProductName(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>{t('pos.product_price')}</Label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="0.00"
+                value={productPrice}
+                onChange={(e) => setProductPrice(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>{t('pos.product_category')}</Label>
+              <Select value={productPosCatId} onValueChange={setProductPosCatId}>
+                <SelectTrigger>
+                  <SelectValue placeholder={t('pos.select_category')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">{t('pos.no_category')}</SelectItem>
+                  {posCategories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {!editingProduct && (
+              <div className="flex items-center justify-between rounded-lg border p-3">
+                <Label htmlFor="direct-sale-switch" className="cursor-pointer text-sm">
+                  {t('pos.product_direct_sale')}
+                </Label>
+                <Switch
+                  id="direct-sale-switch"
+                  checked={productDirectSale}
+                  onCheckedChange={setProductDirectSale}
+                />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setProductDialogOpen(false)}>
+              {t('common.cancel')}
+            </Button>
+            <Button
+              onClick={saveProduct}
+              disabled={!productName.trim() || !productPrice || parseFloat(productPrice) <= 0}
+            >
+              {t('common.save')}
             </Button>
           </DialogFooter>
         </DialogContent>
