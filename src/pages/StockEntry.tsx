@@ -18,21 +18,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { Search, Save, RotateCcw, Package, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { differenceInDays, parseISO, format } from 'date-fns';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon } from 'lucide-react';
+import { CategoryAccordion } from '@/components/stock-entry/CategoryAccordion';
 
 interface Category {
   id: string;
@@ -447,7 +437,7 @@ export default function StockEntry() {
           </div>
         </div>
 
-        {/* Table */}
+        {/* Category Accordions */}
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -465,77 +455,34 @@ export default function StockEntry() {
             </CardContent>
           </Card>
         ) : (
-          <Card className="overflow-hidden">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-table-header">
-                    <TableHead className="font-semibold">{t('table.product')}</TableHead>
-                    <TableHead className="font-semibold">{t('table.category')}</TableHead>
-                    <TableHead className="font-semibold">{t('table.unit')}</TableHead>
-                    <TableHead className="font-semibold">{t('table.min_stock')}</TableHead>
-                    <TableHead className="font-semibold">{t('table.current_qty')}</TableHead>
-                    <TableHead className="font-semibold">{t('table.expiry')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredItems.map((item, index) => (
-                    <TableRow
-                      key={item.id}
-                      className={cn(
-                        getRowClassName(item),
-                        index % 2 === 1 && !getRowClassName(item) && 'bg-table-row-alt'
-                      )}
-                    >
-                      <TableCell className="font-medium">{item.name}</TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {getCategoryName(item.category_id)}
-                      </TableCell>
-                      <TableCell>{item.unit}</TableCell>
-                      <TableCell>{item.min_stock}</TableCell>
-                      <TableCell className={cn('p-2', getStockCellClassName(item))}>
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.1"
-                          value={getDisplayStock(item)}
-                          onChange={(e) => handleStockChange(item.id, e.target.value)}
-                          className="h-9 w-24 bg-background"
-                        />
-                      </TableCell>
-                      <TableCell className="p-2">
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                'w-[140px] justify-start text-left font-normal',
-                                !getDisplayExpiry(item) && 'text-muted-foreground'
-                              )}
-                            >
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {getDisplayExpiry(item)
-                                ? format(parseISO(getDisplayExpiry(item)!), 'dd/MM/yyyy')
-                                : t('stock_entry.select_date')}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={getDisplayExpiry(item) ? parseISO(getDisplayExpiry(item)!) : undefined}
-                              onSelect={(date) => handleExpiryChange(item.id, date)}
-                              initialFocus
-                              className="p-3 pointer-events-auto"
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </Card>
+          <div className="space-y-4">
+            {categories
+              .filter((cat) => filteredItems.some((item) => item.category_id === cat.id))
+              .map((cat) => (
+                <CategoryAccordion
+                  key={cat.id}
+                  categoryName={cat.name}
+                  items={filteredItems.filter((item) => item.category_id === cat.id)}
+                  editedItems={editedItems}
+                  onStockChange={handleStockChange}
+                  onExpiryChange={handleExpiryChange}
+                  getDisplayStock={getDisplayStock}
+                  getDisplayExpiry={getDisplayExpiry}
+                />
+              ))}
+            {/* Items without category */}
+            {filteredItems.some((item) => !item.category_id || !categories.find((c) => c.id === item.category_id)) && (
+              <CategoryAccordion
+                categoryName={t('stock_entry.uncategorized') || 'Sem categoria'}
+                items={filteredItems.filter((item) => !item.category_id || !categories.find((c) => c.id === item.category_id))}
+                editedItems={editedItems}
+                onStockChange={handleStockChange}
+                onExpiryChange={handleExpiryChange}
+                getDisplayStock={getDisplayStock}
+                getDisplayExpiry={getDisplayExpiry}
+              />
+            )}
+          </div>
         )}
 
         {/* Stock Withdrawal Modal */}
