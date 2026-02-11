@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -6,7 +7,6 @@ import { useCurrency } from '@/contexts/CurrencyContext';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import BillReviewModal from '@/components/BillReviewModal';
 import TableManagementModal from '@/components/TableManagementModal';
-import POSInterface from '@/components/POSInterface';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -124,6 +124,7 @@ export default function DiningRoom() {
   const { t } = useLanguage();
   const { formatCurrency } = useCurrency();
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   const [tables, setTables] = useState<RestaurantTable[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -146,7 +147,6 @@ export default function DiningRoom() {
   const [stockAlertOpen, setStockAlertOpen] = useState(false);
   const [counterOrderOpen, setCounterOrderOpen] = useState(false);
   const [tableManagementOpen, setTableManagementOpen] = useState(false);
-  const [posInterfaceOpen, setPosInterfaceOpen] = useState(false);
 
   // Table options state
   const [tableStatus, setTableStatus] = useState<string>('free');
@@ -277,10 +277,7 @@ export default function DiningRoom() {
     const existingOrder = getTableOrder(table.id);
     if (existingOrder) {
       // Occupied table with order → open POS directly
-      setCurrentOrder(existingOrder);
-      setCurrentOrderItems(getOrderItems(existingOrder.id));
-      setDishQuantities({});
-      setPosInterfaceOpen(true);
+      navigateToPOS(existingOrder, table);
     } else {
       // Free/reserved table → show options
       setGuestCount(table.capacity);
@@ -319,10 +316,8 @@ export default function DiningRoom() {
             .eq('id', selectedTable.id);
 
           setCurrentOrder(newOrder);
-          setCurrentOrderItems([]);
-          setDishQuantities({});
           setTableOptionsOpen(false);
-          setPosInterfaceOpen(true);
+          navigateToPOS(newOrder, selectedTable);
         } else {
           // Update guest count
           await supabase
@@ -331,10 +326,8 @@ export default function DiningRoom() {
             .eq('id', existingOrder.id);
 
           setCurrentOrder({ ...existingOrder, guest_count: guestCount });
-          setCurrentOrderItems(getOrderItems(existingOrder.id));
-          setDishQuantities({});
           setTableOptionsOpen(false);
-          setPosInterfaceOpen(true);
+          navigateToPOS({ ...existingOrder, guest_count: guestCount }, selectedTable);
         }
       } else {
         // Update table status only (free or reserved)
@@ -392,12 +385,9 @@ export default function DiningRoom() {
       if (error) throw error;
 
       setCurrentOrder(newOrder);
-      setCurrentOrderItems([]);
-      setDishQuantities({});
-      setSelectedTable(null);
       setCounterOrderOpen(false);
       setCounterCustomerName('');
-      setPosInterfaceOpen(true);
+      navigateToPOS(newOrder, null);
       fetchData();
     } catch (error) {
       console.error('Error creating counter order:', error);
@@ -605,6 +595,19 @@ export default function DiningRoom() {
       return `${t('dining.table')} ${selectedTable.table_number}`;
     }
     return currentOrder?.customer_name || 'Balcão';
+  };
+
+  const navigateToPOS = (order: Order, table: RestaurantTable | null) => {
+    const label = table
+      ? `${t('dining.table')} ${table.table_number}`
+      : order.customer_name || 'Balcão';
+    const params = new URLSearchParams({
+      orderId: order.id,
+      orderLabel: label,
+      currentTotal: String(order.total || 0),
+    });
+    if (table) params.set('tableId', table.id);
+    navigate(`/pos?${params.toString()}`);
   };
 
   const getStatusColor = (status: string) => {
@@ -929,7 +932,7 @@ export default function DiningRoom() {
                   className="h-14 text-lg"
                   onClick={() => {
                     setOrderModalOpen(false);
-                    setPosInterfaceOpen(true);
+                    if (currentOrder) navigateToPOS(currentOrder, selectedTable);
                   }}
                 >
                   <Plus className="mr-2 h-5 w-5" />
@@ -1151,37 +1154,6 @@ export default function DiningRoom() {
           onTablesUpdated={fetchData}
         />
 
-        {/* POS Interface */}
-        {currentOrder && (
-          <POSInterface
-            open={posInterfaceOpen}
-            onClose={() => setPosInterfaceOpen(false)}
-            orderId={currentOrder.id}
-            orderLabel={getOrderLabel()}
-            tableId={selectedTable?.id || null}
-            onOrderUpdated={() => {
-              fetchData();
-              // Refresh current order items
-              supabase
-                .from('order_items')
-                .select('*')
-                .eq('order_id', currentOrder.id)
-                .then(({ data }) => {
-                  if (data) setCurrentOrderItems(data);
-                });
-              supabase
-                .from('orders')
-                .select('*')
-                .eq('id', currentOrder.id)
-                .single()
-                .then(({ data }) => {
-                  if (data) setCurrentOrder(data);
-                });
-            }}
-            existingItems={currentOrderItems}
-            currentTotal={currentOrder.total || 0}
-          />
-        )}
       </div>
 
       {/* Print Styles */}
