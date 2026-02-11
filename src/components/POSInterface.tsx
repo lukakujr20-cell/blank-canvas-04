@@ -70,6 +70,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useNavigate } from 'react-router-dom';
 
 interface Dish {
   id: string;
@@ -191,6 +192,7 @@ export default function POSInterface({
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const canManage = isHost || isSuperAdmin;
+  const navigate = useNavigate();
 
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [directSaleItems, setDirectSaleItems] = useState<Item[]>([]);
@@ -953,6 +955,17 @@ export default function POSInterface({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
+            {canManage && (
+              <AlertDialogCancel
+                onClick={() => {
+                  setStockAlertOpen(false);
+                  const missingItems = stockIssues.map(i => i.itemName).join(',');
+                  navigate(`/shopping-list?highlight=${encodeURIComponent(missingItems)}`);
+                }}
+              >
+                {t('pos.go_to_shopping_list')}
+              </AlertDialogCancel>
+            )}
             <AlertDialogAction onClick={() => setStockAlertOpen(false)}>OK</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

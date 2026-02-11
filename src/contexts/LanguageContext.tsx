@@ -581,6 +581,7 @@ const translations: Record<Language, Record<string, string>> = {
     'pos.product_deleted': 'Produto excluído!',
     'pos.select_category': 'Selecione uma categoria',
     'pos.no_category': 'Sem categoria',
+    'pos.go_to_shopping_list': 'Ir para Lista de Compras',
 
     // Common
     'common.add': 'Adicionar',
@@ -1195,6 +1196,7 @@ const translations: Record<Language, Record<string, string>> = {
     'pos.product_deleted': '¡Producto eliminado!',
     'pos.select_category': 'Seleccione una categoría',
     'pos.no_category': 'Sin categoría',
+    'pos.go_to_shopping_list': 'Ir a Lista de Compras',
 
     'common.add': 'Agregar',
     'common.success': '¡Éxito!',
@@ -1808,6 +1810,7 @@ const translations: Record<Language, Record<string, string>> = {
     'pos.product_deleted': 'Product deleted!',
     'pos.select_category': 'Select a category',
     'pos.no_category': 'No category',
+    'pos.go_to_shopping_list': 'Go to Shopping List',
 
     'common.add': 'Add',
     'common.success': 'Success!',
