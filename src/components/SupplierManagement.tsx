@@ -67,14 +67,43 @@ export default function SupplierManagement() {
     }
   };
 
+  // Country code formats: { code, mask pattern }
+  const COUNTRY_FORMATS: { code: string; len: number; format: (d: string) => string }[] = [
+    { code: '55', len: 2, format: (d) => {
+      // Brazil: +55 (XX) XXXXX-XXXX
+      if (d.length <= 4) return `+55 (${d.slice(2)}`;
+      if (d.length <= 9) return `+55 (${d.slice(2, 4)}) ${d.slice(4)}`;
+      return `+55 (${d.slice(2, 4)}) ${d.slice(4, 9)}-${d.slice(9, 13)}`;
+    }},
+    { code: '351', len: 3, format: (d) => {
+      // Portugal: +351 XXX XXX XXX
+      if (d.length <= 6) return `+351 ${d.slice(3)}`;
+      if (d.length <= 9) return `+351 ${d.slice(3, 6)} ${d.slice(6)}`;
+      return `+351 ${d.slice(3, 6)} ${d.slice(6, 9)} ${d.slice(9, 12)}`;
+    }},
+    { code: '34', len: 2, format: (d) => {
+      // Spain: +34 XXX XX XX XX
+      if (d.length <= 5) return `+34 ${d.slice(2)}`;
+      if (d.length <= 7) return `+34 ${d.slice(2, 5)} ${d.slice(5)}`;
+      if (d.length <= 9) return `+34 ${d.slice(2, 5)} ${d.slice(5, 7)} ${d.slice(7)}`;
+      return `+34 ${d.slice(2, 5)} ${d.slice(5, 7)} ${d.slice(7, 9)} ${d.slice(9, 11)}`;
+    }},
+  ];
+
   const formatWhatsApp = (value: string) => {
-    // Remove non-digits
     const digits = value.replace(/\D/g, '');
-    // Format as +XX (XX) XXXXX-XXXX
-    if (digits.length <= 2) return digits;
-    if (digits.length <= 4) return `+${digits.slice(0, 2)} (${digits.slice(2)}`;
-    if (digits.length <= 9) return `+${digits.slice(0, 2)} (${digits.slice(2, 4)}) ${digits.slice(4)}`;
-    return `+${digits.slice(0, 2)} (${digits.slice(2, 4)}) ${digits.slice(4, 9)}-${digits.slice(9, 13)}`;
+    if (digits.length === 0) return '';
+
+    // Detect country by prefix
+    for (const country of COUNTRY_FORMATS) {
+      if (digits.startsWith(country.code) && digits.length > country.len) {
+        return country.format(digits);
+      }
+    }
+
+    // Fallback: generic international format +XX XXXXXXXXX
+    if (digits.length <= 2) return `+${digits}`;
+    return `+${digits.slice(0, 2)} ${digits.slice(2)}`;
   };
 
   const handleWhatsAppChange = (value: string) => {
