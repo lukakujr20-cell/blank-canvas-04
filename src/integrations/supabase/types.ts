@@ -251,6 +251,7 @@ export type Database = {
       order_items: {
         Row: {
           created_at: string
+          destination: string | null
           dish_id: string | null
           dish_name: string
           id: string
@@ -263,6 +264,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          destination?: string | null
           dish_id?: string | null
           dish_name: string
           id?: string
@@ -275,6 +277,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          destination?: string | null
           dish_id?: string | null
           dish_name?: string
           id?: string
@@ -305,6 +308,7 @@ export type Database = {
       orders: {
         Row: {
           closed_at: string | null
+          consumption_type: string | null
           created_at: string
           customer_name: string | null
           guest_count: number | null
@@ -318,6 +322,7 @@ export type Database = {
         }
         Insert: {
           closed_at?: string | null
+          consumption_type?: string | null
           created_at?: string
           customer_name?: string | null
           guest_count?: number | null
@@ -331,6 +336,7 @@ export type Database = {
         }
         Update: {
           closed_at?: string | null
+          consumption_type?: string | null
           created_at?: string
           customer_name?: string | null
           guest_count?: number | null
@@ -355,18 +361,21 @@ export type Database = {
       pos_categories: {
         Row: {
           created_at: string
+          destination: string
           id: string
           name: string
           restaurant_id: string | null
         }
         Insert: {
           created_at?: string
+          destination?: string
           id?: string
           name: string
           restaurant_id?: string | null
         }
         Update: {
           created_at?: string
+          destination?: string
           id?: string
           name?: string
           restaurant_id?: string | null
