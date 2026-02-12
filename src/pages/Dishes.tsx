@@ -104,7 +104,7 @@ interface StockIssue {
 }
 
 export default function Dishes() {
-  const { user } = useAuth();
+  const { user, restaurantId } = useAuth();
   const { t } = useLanguage();
   const { formatCurrency } = useCurrency();
   const { toast } = useToast();
@@ -241,19 +241,10 @@ export default function Dishes() {
       return;
     }
 
-    // Validate ingredients
+    // Validate ingredients (optional - dishes can have no ingredients)
     const validIngredients = ingredients.filter(
       (ing) => ing.item_id && ing.quantity > 0
     );
-
-    if (validIngredients.length === 0) {
-      toast({
-        title: t('common.error'),
-        description: t('dishes.ingredients_required'),
-        variant: 'destructive',
-      });
-      return;
-    }
 
     setProcessingAction(true);
 
@@ -288,6 +279,7 @@ export default function Dishes() {
             price: dishForm.price,
             category_id: dishForm.category_id || null,
             pos_category_id: dishForm.pos_category_id || null,
+            restaurant_id: restaurantId,
           })
           .select()
           .single();
@@ -296,18 +288,20 @@ export default function Dishes() {
         dishId = data.id;
       }
 
-      // Insert technical sheets
-      const sheetsToInsert = validIngredients.map((ing) => ({
-        dish_id: dishId,
-        item_id: ing.item_id,
-        quantity_per_sale: ing.quantity,
-      }));
+      // Insert technical sheets (only if there are valid ingredients)
+      if (validIngredients.length > 0) {
+        const sheetsToInsert = validIngredients.map((ing) => ({
+          dish_id: dishId,
+          item_id: ing.item_id,
+          quantity_per_sale: ing.quantity,
+        }));
 
-      const { error: sheetsError } = await supabase
-        .from('technical_sheets')
-        .insert(sheetsToInsert);
+        const { error: sheetsError } = await supabase
+          .from('technical_sheets')
+          .insert(sheetsToInsert);
 
-      if (sheetsError) throw sheetsError;
+        if (sheetsError) throw sheetsError;
+      }
 
       toast({
         title: editingDish ? t('dishes.updated') : t('dishes.created'),
@@ -620,7 +614,7 @@ export default function Dishes() {
                           if (e.key === 'Enter') {
                             e.preventDefault();
                             if (!newPosCategoryName.trim()) return;
-                            const { data, error } = await supabase.from('pos_categories').insert({ name: newPosCategoryName.trim() }).select().single();
+                            const { data, error } = await supabase.from('pos_categories').insert({ name: newPosCategoryName.trim(), restaurant_id: restaurantId }).select().single();
                             if (!error && data) {
                               setPosCategories(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
                               setDishForm(f => ({ ...f, pos_category_id: data.id }));
@@ -637,7 +631,7 @@ export default function Dishes() {
                         size="sm"
                         onClick={async () => {
                           if (!newPosCategoryName.trim()) return;
-                          const { data, error } = await supabase.from('pos_categories').insert({ name: newPosCategoryName.trim() }).select().single();
+                          const { data, error } = await supabase.from('pos_categories').insert({ name: newPosCategoryName.trim(), restaurant_id: restaurantId }).select().single();
                           if (!error && data) {
                             setPosCategories(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
                             setDishForm(f => ({ ...f, pos_category_id: data.id }));

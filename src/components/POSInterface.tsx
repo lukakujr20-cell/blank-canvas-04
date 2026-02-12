@@ -8,8 +8,10 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -67,6 +69,7 @@ import {
   Milk,
   Layers,
   Pencil,
+  MessageSquare,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -97,6 +100,7 @@ interface Item {
 interface PosCategory {
   id: string;
   name: string;
+  destination: string;
 }
 
 interface Category {
@@ -113,6 +117,7 @@ interface CartItem {
   isDish: boolean;
   dishId?: string;
   itemId?: string;
+  destination?: string;
 }
 
 interface TechnicalSheet {
@@ -178,6 +183,15 @@ function getCatColor(index: number): string {
   return POS_CAT_COLORS[index % POS_CAT_COLORS.length];
 }
 
+// Currency mask helper
+function formatPriceInput(value: string): string {
+  // Remove non-numeric chars
+  const digits = value.replace(/\D/g, '');
+  if (!digits) return '';
+  const num = parseInt(digits, 10);
+  return (num / 100).toFixed(2);
+}
+
 export default function POSInterface({
   onClose,
   orderId,
@@ -210,13 +224,20 @@ export default function POSInterface({
   const [sending, setSending] = useState(false);
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
   const [liveTotal, setLiveTotal] = useState(currentTotal);
+  const [consumptionType, setConsumptionType] = useState<string>('dine_in');
+
+  // Notes editing state
+  const [editingNotesId, setEditingNotesId] = useState<string | null>(null);
+  const [editingNotesValue, setEditingNotesValue] = useState('');
 
   // Category management state
   const [newCatDialogOpen, setNewCatDialogOpen] = useState(false);
   const [newCatName, setNewCatName] = useState('');
+  const [newCatDestination, setNewCatDestination] = useState<string>('kitchen');
   const [editCatDialogOpen, setEditCatDialogOpen] = useState(false);
   const [editCatId, setEditCatId] = useState<string | null>(null);
   const [editCatName, setEditCatName] = useState('');
+  const [editCatDestination, setEditCatDestination] = useState<string>('kitchen');
   const [deleteCatAlertOpen, setDeleteCatAlertOpen] = useState(false);
   const [deleteCatId, setDeleteCatId] = useState<string | null>(null);
 
@@ -227,10 +248,10 @@ export default function POSInterface({
   const [productPrice, setProductPrice] = useState('');
   const [productPosCatId, setProductPosCatId] = useState<string>('none');
   const [productDirectSale, setProductDirectSale] = useState(false);
+  const [productNotes, setProductNotes] = useState('');
 
   useEffect(() => {
     fetchData();
-    setCart([]);
   }, []);
 
   const fetchData = async () => {
@@ -241,7 +262,7 @@ export default function POSInterface({
         supabase.from('categories').select('*').order('name'),
         supabase.from('pos_categories').select('*').order('name'),
         supabase.from('technical_sheets').select('*'),
-        supabase.from('orders').select('total').eq('id', orderId).single(),
+        supabase.from('orders').select('total, consumption_type').eq('id', orderId).single(),
       ]);
 
       if (dishesRes.error) throw dishesRes.error;
@@ -257,6 +278,9 @@ export default function POSInterface({
       setTechnicalSheets(sheetsRes.data || []);
       if (orderRes.data) {
         setLiveTotal(orderRes.data.total || 0);
+        if ((orderRes.data as any).consumption_type) {
+          setConsumptionType((orderRes.data as any).consumption_type);
+        }
       }
 
       const directSale = (itemsRes.data || []).filter(
@@ -288,10 +312,12 @@ export default function POSInterface({
       const { error } = await supabase.from('pos_categories').insert({
         name: trimmed,
         restaurant_id: restaurantId,
+        destination: newCatDestination,
       });
       if (error) throw error;
       toast({ title: t('pos.category_created') });
       setNewCatName('');
+      setNewCatDestination('kitchen');
       setNewCatDialogOpen(false);
       const { data: freshCats } = await supabase.from('pos_categories').select('*').order('name');
       if (freshCats) setPosCategories(freshCats);
@@ -305,7 +331,10 @@ export default function POSInterface({
     const trimmed = editCatName.trim();
     if (!trimmed || !editCatId) return;
     try {
-      const { error } = await supabase.from('pos_categories').update({ name: trimmed }).eq('id', editCatId);
+      const { error } = await supabase.from('pos_categories').update({ 
+        name: trimmed, 
+        destination: editCatDestination 
+      }).eq('id', editCatId);
       if (error) throw error;
       toast({ title: t('pos.category_updated') });
       setEditCatDialogOpen(false);
@@ -322,7 +351,6 @@ export default function POSInterface({
   const deleteCategory = async () => {
     if (!deleteCatId) return;
     try {
-      // Unlink products from this category
       await supabase.from('dishes').update({ pos_category_id: null }).eq('pos_category_id', deleteCatId);
       await supabase.from('items').update({ pos_category_id: null }).eq('pos_category_id', deleteCatId);
       const { error } = await supabase.from('pos_categories').delete().eq('id', deleteCatId);
@@ -346,15 +374,17 @@ export default function POSInterface({
     setProductPrice('');
     setProductPosCatId(selectedCategory || 'none');
     setProductDirectSale(false);
+    setProductNotes('');
     setProductDialogOpen(true);
   };
 
   const openEditProduct = (product: { id: string; name: string; price: number; type: 'dish' | 'item'; pos_category_id?: string | null }) => {
     setEditingProduct({ id: product.id, type: product.type });
     setProductName(product.name);
-    setProductPrice(String(product.price));
+    setProductPrice(product.price.toFixed(2));
     setProductPosCatId(product.pos_category_id || 'none');
     setProductDirectSale(product.type === 'item');
+    setProductNotes('');
     setProductDialogOpen(true);
   };
 
@@ -367,7 +397,6 @@ export default function POSInterface({
 
     try {
       if (editingProduct) {
-        // Update existing
         if (editingProduct.type === 'dish') {
           const { error } = await supabase.from('dishes').update({
             name: trimmedName, price, pos_category_id: posCatId,
@@ -380,7 +409,6 @@ export default function POSInterface({
           if (error) throw error;
         }
       } else {
-        // Create new
         if (productDirectSale) {
           const { error } = await supabase.from('items').insert({
             name: trimmedName, price, pos_category_id: posCatId,
@@ -452,6 +480,13 @@ export default function POSInterface({
     return [];
   };
 
+  // Get destination for a product based on its pos_category
+  const getProductDestination = (product: typeof allProducts[0]): string => {
+    if (!product.pos_category_id) return 'kitchen';
+    const cat = posCategories.find(c => c.id === product.pos_category_id);
+    return cat?.destination || 'kitchen';
+  };
+
   const addToCart = (product: typeof allProducts[0]) => {
     let issues: StockIssue[] = [];
     const existingCartItem = cart.find(
@@ -467,6 +502,8 @@ export default function POSInterface({
 
     if (issues.length > 0) { setStockIssues(issues); setStockAlertOpen(true); return; }
 
+    const destination = getProductDestination(product);
+
     setCart((prev) => {
       const existing = prev.find(
         (c) => (product.type === 'dish' && c.dishId === product.id) || (product.type === 'item' && c.itemId === product.id)
@@ -479,8 +516,14 @@ export default function POSInterface({
         isDish: product.type === 'dish',
         dishId: product.type === 'dish' ? product.id : undefined,
         itemId: product.type === 'item' ? product.id : undefined,
+        destination,
       }];
     });
+
+    // Auto-open cart drawer on mobile
+    if (isMobile) {
+      setCartDrawerOpen(true);
+    }
   };
 
   const updateCartQuantity = (cartId: string, delta: number) => {
@@ -499,6 +542,10 @@ export default function POSInterface({
     });
   };
 
+  const updateCartNotes = (cartId: string, notes: string) => {
+    setCart((prev) => prev.map((c) => c.id === cartId ? { ...c, notes } : c));
+  };
+
   const removeFromCart = (cartId: string) => {
     setCart((prev) => prev.filter((c) => c.id !== cartId));
   };
@@ -513,12 +560,14 @@ export default function POSInterface({
       let newTotal = liveTotal;
       for (const cartItem of cart) {
         const itemStatus = cartItem.isDish ? 'pending' : 'ready';
+        const itemDestination = cartItem.destination || 'kitchen';
         const { data: orderItem, error: itemError } = await supabase
           .from('order_items')
           .insert({
             order_id: orderId, dish_id: cartItem.dishId || null, dish_name: cartItem.name,
             quantity: cartItem.quantity, unit_price: cartItem.price, status: itemStatus,
             notes: cartItem.notes || null, sent_at: new Date().toISOString(),
+            destination: itemDestination,
           })
           .select().single();
         if (itemError) throw itemError;
@@ -560,8 +609,12 @@ export default function POSInterface({
         newTotal += cartItem.price * cartItem.quantity;
       }
 
-      // Update total and ensure order status is 'open' (not draft) so kitchen can see it
-      await supabase.from('orders').update({ total: newTotal, status: 'open' }).eq('id', orderId);
+      // Update total, status, and consumption type
+      await supabase.from('orders').update({ 
+        total: newTotal, 
+        status: 'open',
+        consumption_type: consumptionType,
+      }).eq('id', orderId);
       toast({ title: t('pos.sent_to_kitchen') });
       setCart([]);
       setLiveTotal(newTotal);
@@ -590,12 +643,54 @@ export default function POSInterface({
           <div className="p-3 space-y-2">
             {cart.map((item) => (
               <div key={item.id} className="bg-card rounded-lg p-3 border">
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <p className="font-semibold text-sm leading-tight flex-1">{item.name}</p>
+                <div className="flex items-start justify-between gap-2 mb-1">
+                  <div className="flex-1">
+                    <p className="font-semibold text-sm leading-tight">{item.name}</p>
+                    {item.destination && (
+                      <Badge variant="outline" className="text-[10px] mt-0.5 px-1.5 py-0">
+                        {item.destination === 'bar' ? '🍸 Bar' : '🍳 Cozinha'}
+                      </Badge>
+                    )}
+                  </div>
                   <button onClick={() => removeFromCart(item.id)} className="text-destructive hover:text-destructive/80 p-0.5">
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
+
+                {/* Notes */}
+                {editingNotesId === item.id ? (
+                  <div className="mt-1 mb-2">
+                    <Input
+                      placeholder="Ex: Sem gelo, com limão..."
+                      value={editingNotesValue}
+                      onChange={(e) => setEditingNotesValue(e.target.value)}
+                      onBlur={() => {
+                        updateCartNotes(item.id, editingNotesValue);
+                        setEditingNotesId(null);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          updateCartNotes(item.id, editingNotesValue);
+                          setEditingNotesId(null);
+                        }
+                      }}
+                      className="h-7 text-xs"
+                      autoFocus
+                    />
+                  </div>
+                ) : (
+                  <button
+                    className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground mt-0.5 mb-1"
+                    onClick={() => {
+                      setEditingNotesId(item.id);
+                      setEditingNotesValue(item.notes || '');
+                    }}
+                  >
+                    <MessageSquare className="h-3 w-3" />
+                    {item.notes ? item.notes : 'Obs...'}
+                  </button>
+                )}
+
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1">
                     <button
@@ -622,6 +717,28 @@ export default function POSInterface({
 
       {/* Cart Footer */}
       <div className="p-4 border-t bg-card space-y-3">
+        {/* Consumption Type Toggle */}
+        <div className="flex items-center gap-3 p-2 rounded-lg bg-muted/50">
+          <RadioGroup
+            value={consumptionType}
+            onValueChange={setConsumptionType}
+            className="flex gap-3 w-full"
+          >
+            <div className="flex items-center gap-1.5 flex-1">
+              <RadioGroupItem value="dine_in" id="dine_in" />
+              <Label htmlFor="dine_in" className="text-xs cursor-pointer font-medium">
+                🍽️ No Local
+              </Label>
+            </div>
+            <div className="flex items-center gap-1.5 flex-1">
+              <RadioGroupItem value="takeaway" id="takeaway" />
+              <Label htmlFor="takeaway" className="text-xs cursor-pointer font-medium">
+                📦 Para Viagem
+              </Label>
+            </div>
+          </RadioGroup>
+        </div>
+
         {liveTotal > 0 && (
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <span>{t('pos.current_total')}</span>
@@ -757,6 +874,7 @@ export default function POSInterface({
                               e.stopPropagation();
                               setEditCatId(cat.id);
                               setEditCatName(cat.name);
+                              setEditCatDestination(cat.destination || 'kitchen');
                               setEditCatDialogOpen(true);
                             }}
                           >
@@ -989,6 +1107,26 @@ export default function POSInterface({
                 autoFocus
               />
             </div>
+            <div className="space-y-2">
+              <Label>Destino do Pedido</Label>
+              <RadioGroup
+                value={newCatDestination}
+                onValueChange={setNewCatDestination}
+                className="flex gap-4"
+              >
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="kitchen" id="new-dest-kitchen" />
+                  <Label htmlFor="new-dest-kitchen" className="cursor-pointer text-sm">🍳 Cozinha</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="bar" id="new-dest-bar" />
+                  <Label htmlFor="new-dest-bar" className="cursor-pointer text-sm">🍸 Bar</Label>
+                </div>
+              </RadioGroup>
+              <p className="text-xs text-muted-foreground">
+                Itens desta categoria serão enviados automaticamente para o destino selecionado.
+              </p>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setNewCatDialogOpen(false)}>
@@ -1017,6 +1155,23 @@ export default function POSInterface({
                 onKeyDown={(e) => e.key === 'Enter' && updateCategory()}
                 autoFocus
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Destino do Pedido</Label>
+              <RadioGroup
+                value={editCatDestination}
+                onValueChange={setEditCatDestination}
+                className="flex gap-4"
+              >
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="kitchen" id="edit-dest-kitchen" />
+                  <Label htmlFor="edit-dest-kitchen" className="cursor-pointer text-sm">🍳 Cozinha</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="bar" id="edit-dest-bar" />
+                  <Label htmlFor="edit-dest-bar" className="cursor-pointer text-sm">🍸 Bar</Label>
+                </div>
+              </RadioGroup>
             </div>
           </div>
           <DialogFooter>
@@ -1067,14 +1222,19 @@ export default function POSInterface({
             </div>
             <div className="space-y-2">
               <Label>{t('pos.product_price')}</Label>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="0.00"
-                value={productPrice}
-                onChange={(e) => setProductPrice(e.target.value)}
-              />
+              <div className="relative">
+                <Input
+                  placeholder="0,00"
+                  value={productPrice}
+                  onChange={(e) => {
+                    const formatted = formatPriceInput(e.target.value);
+                    setProductPrice(formatted);
+                  }}
+                  inputMode="numeric"
+                  className="pl-8"
+                />
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium">$</span>
+              </div>
             </div>
             <div className="space-y-2">
               <Label>{t('pos.product_category')}</Label>
@@ -1085,7 +1245,9 @@ export default function POSInterface({
                 <SelectContent>
                   <SelectItem value="none">{t('pos.no_category')}</SelectItem>
                   {posCategories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name} {cat.destination === 'bar' ? '🍸' : '🍳'}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
