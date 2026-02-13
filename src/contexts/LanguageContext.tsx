@@ -541,6 +541,19 @@ const translations: Record<Language, Record<string, string>> = {
     'billing.admin_only_remove_hint': 'Apenas administradores podem remover itens da conta',
     'billing.confirm_payment': 'Confirmar Pagamento',
     'billing.close_and_print': 'Fechar e Imprimir',
+    'billing.finalize_sale': 'Finalizar Venda',
+    'billing.payment_method': 'Forma de Pagamento',
+    'billing.cash': 'Dinheiro',
+    'billing.card': 'Cartão',
+    'billing.other': 'Outros',
+
+    // Financial Dashboard
+    'finance.title': 'Resumo Financeiro (Turno Atual)',
+    'finance.gross_revenue': 'Faturamento Bruto',
+    'finance.total_orders': 'Total de Pedidos',
+    'finance.avg_ticket': 'Ticket Médio',
+    'finance.by_payment_method': 'Por Forma de Pagamento',
+    'finance.no_sales_yet': 'Nenhuma venda registrada neste turno',
 
     // Audit Details
     'audit.detail_title': 'Detalhes da Movimentação',
@@ -1282,6 +1295,19 @@ const translations: Record<Language, Record<string, string>> = {
     'billing.admin_only_remove_hint': 'Solo administradores pueden eliminar ítems de la cuenta',
     'billing.confirm_payment': 'Confirmar Pago',
     'billing.close_and_print': 'Cerrar e Imprimir',
+    'billing.finalize_sale': 'Finalizar Venta',
+    'billing.payment_method': 'Forma de Pago',
+    'billing.cash': 'Efectivo',
+    'billing.card': 'Tarjeta',
+    'billing.other': 'Otros',
+
+    // Financial Dashboard
+    'finance.title': 'Resumen Financiero (Turno Actual)',
+    'finance.gross_revenue': 'Facturación Bruta',
+    'finance.total_orders': 'Total de Pedidos',
+    'finance.avg_ticket': 'Ticket Promedio',
+    'finance.by_payment_method': 'Por Forma de Pago',
+    'finance.no_sales_yet': 'Ninguna venta registrada en este turno',
 
     // Audit Details
     'audit.detail_title': 'Detalles del Movimiento',
@@ -2022,6 +2048,19 @@ const translations: Record<Language, Record<string, string>> = {
     'billing.admin_only_remove_hint': 'Only admins can remove items from the bill',
     'billing.confirm_payment': 'Confirm Payment',
     'billing.close_and_print': 'Close and Print',
+    'billing.finalize_sale': 'Finalize Sale',
+    'billing.payment_method': 'Payment Method',
+    'billing.cash': 'Cash',
+    'billing.card': 'Card',
+    'billing.other': 'Other',
+
+    // Financial Dashboard
+    'finance.title': 'Financial Summary (Current Shift)',
+    'finance.gross_revenue': 'Gross Revenue',
+    'finance.total_orders': 'Total Orders',
+    'finance.avg_ticket': 'Average Ticket',
+    'finance.by_payment_method': 'By Payment Method',
+    'finance.no_sales_yet': 'No sales recorded in this shift',
 
     // Audit Details
     'audit.detail_title': 'Movement Details',

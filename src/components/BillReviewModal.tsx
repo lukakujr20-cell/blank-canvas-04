@@ -15,9 +15,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Printer, CreditCard, Trash2, Plus, ShieldAlert, Users } from 'lucide-react';
-import { format } from 'date-fns';
+import { Printer, CreditCard, Trash2, Plus, ShieldAlert, Users, Banknote, Wallet } from 'lucide-react';
 
 interface OrderItem {
   id: string;
@@ -50,7 +51,7 @@ interface BillReviewModalProps {
   tableNumber?: number | null;
   waiterName: string;
   onAddItem: () => void;
-  onClose: () => void;
+  onClose: (paymentMethod?: string) => void;
   onPrint: () => void;
 }
 
@@ -71,6 +72,7 @@ export default function BillReviewModal({
   const { toast } = useToast();
   const [confirmPayment, setConfirmPayment] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<string>('cash');
 
   const isAdmin = role === 'admin' || role === 'host';
 
@@ -97,7 +99,6 @@ export default function BillReviewModal({
         .eq('id', order.id);
 
       toast({ title: t('dining.item_removed') });
-      // Parent component will refresh data
     } catch (error) {
       console.error('Error removing item:', error);
       toast({
@@ -111,8 +112,7 @@ export default function BillReviewModal({
   const handleConfirmPayment = async () => {
     setProcessing(true);
     try {
-      onClose();
-      // Print after closing
+      onClose(paymentMethod);
       setTimeout(() => {
         onPrint();
       }, 500);
@@ -121,6 +121,7 @@ export default function BillReviewModal({
     } finally {
       setProcessing(false);
       setConfirmPayment(false);
+      setPaymentMethod('cash');
     }
   };
 
@@ -131,7 +132,7 @@ export default function BillReviewModal({
     : order.customer_name || 'Balcão';
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) { setConfirmPayment(false); setPaymentMethod('cash'); } onOpenChange(v); }}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -149,7 +150,7 @@ export default function BillReviewModal({
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 max-h-[400px] pr-4">
+        <ScrollArea className="flex-1 max-h-[300px] pr-4">
           <div className="space-y-2">
             {orderItems.length === 0 ? (
               <div className="py-8 text-center text-muted-foreground">
@@ -207,6 +208,48 @@ export default function BillReviewModal({
           </p>
         </div>
 
+        {/* Payment Method Selection */}
+        {confirmPayment && (
+          <>
+            <Separator />
+            <div className="space-y-3">
+              <p className="text-sm font-semibold">{t('billing.payment_method')}</p>
+              <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="grid grid-cols-3 gap-2">
+                <div>
+                  <RadioGroupItem value="cash" id="pm-cash" className="peer sr-only" />
+                  <Label
+                    htmlFor="pm-cash"
+                    className="flex flex-col items-center justify-center rounded-lg border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                  >
+                    <Banknote className="mb-1 h-5 w-5" />
+                    <span className="text-xs font-medium">{t('billing.cash')}</span>
+                  </Label>
+                </div>
+                <div>
+                  <RadioGroupItem value="card" id="pm-card" className="peer sr-only" />
+                  <Label
+                    htmlFor="pm-card"
+                    className="flex flex-col items-center justify-center rounded-lg border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                  >
+                    <CreditCard className="mb-1 h-5 w-5" />
+                    <span className="text-xs font-medium">{t('billing.card')}</span>
+                  </Label>
+                </div>
+                <div>
+                  <RadioGroupItem value="other" id="pm-other" className="peer sr-only" />
+                  <Label
+                    htmlFor="pm-other"
+                    className="flex flex-col items-center justify-center rounded-lg border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                  >
+                    <Wallet className="mb-1 h-5 w-5" />
+                    <span className="text-xs font-medium">{t('billing.other')}</span>
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+          </>
+        )}
+
         <DialogFooter className="flex-col gap-2 sm:flex-row">
           <Button
             variant="outline"
@@ -224,7 +267,7 @@ export default function BillReviewModal({
               className="w-full sm:w-auto"
             >
               <CreditCard className="mr-2 h-4 w-4" />
-              {t('billing.confirm_payment')}
+              {t('billing.finalize_sale')}
             </Button>
           ) : (
             <div className="flex gap-2 w-full sm:w-auto">

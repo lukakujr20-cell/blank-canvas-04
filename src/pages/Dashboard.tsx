@@ -6,6 +6,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import ActiveOrdersSection from '@/components/ActiveOrdersSection';
 import { FinishedOrdersSection } from '@/components/FinishedOrdersSection';
+import FinancialDashboard from '@/components/FinancialDashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Package, AlertTriangle, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { differenceInDays, parseISO } from 'date-fns';
@@ -176,6 +177,11 @@ export default function Dashboard() {
             </Card>
           ))}
         </div>
+
+        {/* Financial Dashboard for host/admin */}
+        {(role === 'host' || role === 'admin' || role === 'super_admin') && (
+          <FinancialDashboard />
+        )}
 
         {/* Orders Sections */}
         <div className="grid gap-6 lg:grid-cols-2">
