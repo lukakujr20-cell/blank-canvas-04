@@ -1,6 +1,7 @@
 import { ReactNode, useEffect, useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { usePermissions, PermissionKey } from '@/hooks/usePermissions';
 import { useNavigationGuard } from '@/hooks/useNavigationGuard';
 import { LogoutConfirmDialog } from '@/components/LogoutConfirmDialog';
 import Sidebar from './Sidebar';
@@ -11,8 +12,19 @@ interface DashboardLayoutProps {
   requireAdmin?: boolean;
 }
 
+// Map routes to permission keys
+const ROUTE_PERMISSION_MAP: Record<string, PermissionKey> = {
+  '/dining-room': 'dining_room',
+  '/pos': 'dining_room',
+  '/kitchen': 'kitchen',
+  '/stock-entry': 'stock_entry',
+  '/inventory': 'inventory_management',
+  '/dashboard': 'dashboard',
+};
+
 export default function DashboardLayout({ children, requireAdmin = false }: DashboardLayoutProps) {
-  const { user, loading, isAdmin, isKitchen, signOut } = useAuth();
+  const { user, loading, isAdmin, isKitchen, role, signOut } = useAuth();
+  const { hasPermission, loading: permLoading } = usePermissions();
   const navigate = useNavigate();
   const location = useLocation();
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
@@ -36,11 +48,15 @@ export default function DashboardLayout({ children, requireAdmin = false }: Dash
     if (!loading && requireAdmin && !isAdmin) {
       navigate('/dashboard');
     }
-    // Redirect kitchen users to kitchen panel if they try to access unauthorized pages
-    if (!loading && isKitchen && location.pathname !== '/kitchen' && location.pathname !== '/inventory') {
-      navigate('/kitchen');
+    // Check granular permissions for routes
+    if (!loading && !permLoading && user && role && role !== 'host' && role !== 'super_admin') {
+      const requiredPerm = ROUTE_PERMISSION_MAP[location.pathname];
+      if (requiredPerm && !hasPermission(requiredPerm)) {
+        // Redirect to first available route or settings
+        navigate('/settings');
+      }
     }
-  }, [user, loading, isAdmin, isKitchen, requireAdmin, navigate, location.pathname]);
+  }, [user, loading, isAdmin, isKitchen, requireAdmin, navigate, location.pathname, permLoading, role]);
 
   if (loading) {
     return (
