@@ -89,6 +89,9 @@ const translations: Record<Language, Record<string, string>> = {
     'inventory.confirm_delete_item': 'Tem certeza que deseja excluir este item?',
     'inventory.items': 'itens',
     'inventory.item': 'item',
+    'inventory.primary': 'Primária',
+    'inventory.consumption': 'Consumo',
+    'inventory.recipe': 'Receita',
 
     // Stock Entry
     'stock_entry.title': 'Preenchimento de Estoque',
@@ -733,6 +736,9 @@ const translations: Record<Language, Record<string, string>> = {
     'inventory.confirm_delete_item': '¿Está seguro de que desea eliminar este artículo?',
     'inventory.items': 'artículos',
     'inventory.item': 'artículo',
+    'inventory.primary': 'Primaria',
+    'inventory.consumption': 'Consumo',
+    'inventory.recipe': 'Receta',
 
     // Stock Entry
     'stock_entry.title': 'Registro de Inventario',
@@ -1377,6 +1383,9 @@ const translations: Record<Language, Record<string, string>> = {
     'inventory.confirm_delete_item': 'Are you sure you want to delete this item?',
     'inventory.items': 'items',
     'inventory.item': 'item',
+    'inventory.primary': 'Primary',
+    'inventory.consumption': 'Consumption',
+    'inventory.recipe': 'Recipe',
 
     // Stock Entry
     'stock_entry.title': 'Stock Entry',

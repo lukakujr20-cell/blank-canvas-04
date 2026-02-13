@@ -34,6 +34,8 @@ interface Item {
   category_id: string;
   name: string;
   unit: string;
+  sub_unit: string | null;
+  recipe_unit: string | null;
   min_stock: number;
   current_stock: number;
   expiry_date: string | null;
@@ -460,28 +462,28 @@ export default function StockEntry() {
               .filter((cat) => filteredItems.some((item) => item.category_id === cat.id))
               .map((cat) => (
                 <CategoryAccordion
-                  key={cat.id}
-                  categoryName={cat.name}
-                  items={filteredItems.filter((item) => item.category_id === cat.id)}
-                  editedItems={editedItems}
-                  onStockChange={handleStockChange}
-                  onExpiryChange={handleExpiryChange}
-                  getDisplayStock={getDisplayStock}
-                  getDisplayExpiry={getDisplayExpiry}
-                />
-              ))}
-            {/* Items without category */}
-            {filteredItems.some((item) => !item.category_id || !categories.find((c) => c.id === item.category_id)) && (
-              <CategoryAccordion
-                categoryName={t('stock_entry.uncategorized') || 'Sem categoria'}
-                items={filteredItems.filter((item) => !item.category_id || !categories.find((c) => c.id === item.category_id))}
-                editedItems={editedItems}
-                onStockChange={handleStockChange}
-                onExpiryChange={handleExpiryChange}
-                getDisplayStock={getDisplayStock}
-                getDisplayExpiry={getDisplayExpiry}
-              />
-            )}
+                   key={cat.id}
+                   categoryName={cat.name}
+                   items={filteredItems.filter((item) => item.category_id === cat.id)}
+                   editedItems={editedItems}
+                   onStockChange={handleStockChange}
+                   onExpiryChange={handleExpiryChange}
+                   getDisplayStock={getDisplayStock}
+                   getDisplayExpiry={getDisplayExpiry}
+                 />
+               ))}
+               {/* Items without category */}
+               {filteredItems.some((item) => !item.category_id || !categories.find((c) => c.id === item.category_id)) && (
+                 <CategoryAccordion
+                   categoryName={t('stock_entry.uncategorized') || 'Sem categoria'}
+                   items={filteredItems.filter((item) => !item.category_id || !categories.find((c) => c.id === item.category_id))}
+                   editedItems={editedItems}
+                   onStockChange={handleStockChange}
+                   onExpiryChange={handleExpiryChange}
+                   getDisplayStock={getDisplayStock}
+                   getDisplayExpiry={getDisplayExpiry}
+                 />
+               )}
           </div>
         )}
 

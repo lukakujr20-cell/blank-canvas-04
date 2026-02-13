@@ -7,6 +7,8 @@ interface Item {
   category_id: string;
   name: string;
   unit: string;
+  sub_unit: string | null;
+  recipe_unit: string | null;
   min_stock: number;
   current_stock: number;
   expiry_date: string | null;
