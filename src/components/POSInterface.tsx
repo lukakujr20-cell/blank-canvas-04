@@ -127,6 +127,7 @@ interface TechnicalSheet {
   dish_id: string;
   item_id: string;
   quantity_per_sale: number;
+  unit?: string | null;
 }
 
 interface StockIssue {
@@ -252,7 +253,7 @@ export default function POSInterface({
   const [productDirectSale, setProductDirectSale] = useState(false);
   const [productNotes, setProductNotes] = useState('');
   const [productDescription, setProductDescription] = useState('');
-  const [productIngredients, setProductIngredients] = useState<{ item_id: string; quantity: number }[]>([]);
+  const [productIngredients, setProductIngredients] = useState<{ item_id: string; quantity: number; unit: string }[]>([]);
   const [ingredientSearch, setIngredientSearch] = useState('');
   const [creatingPosCategory, setCreatingPosCategory] = useState(false);
   const [newPosCategoryName, setNewPosCategoryName] = useState('');
@@ -405,7 +406,14 @@ export default function POSInterface({
     // Load existing technical sheets for this dish
     if (product.type === 'dish') {
       const existing = technicalSheets.filter(ts => ts.dish_id === product.id);
-      setProductIngredients(existing.map(ts => ({ item_id: ts.item_id, quantity: ts.quantity_per_sale })));
+      setProductIngredients(existing.map(ts => {
+        const stockItem = items.find(i => i.id === ts.item_id);
+        return {
+          item_id: ts.item_id,
+          quantity: ts.quantity_per_sale,
+          unit: ts.unit || stockItem?.recipe_unit || stockItem?.sub_unit || stockItem?.unit || 'un',
+        };
+      }));
     } else {
       setProductIngredients([]);
     }
@@ -467,6 +475,7 @@ export default function POSInterface({
             dish_id: dishId!,
             item_id: ing.item_id,
             quantity_per_sale: ing.quantity,
+            unit: ing.unit || null,
           }));
         if (sheetsToInsert.length > 0) {
           const { error: sheetError } = await supabase.from('technical_sheets').insert(sheetsToInsert);
@@ -512,8 +521,16 @@ export default function POSInterface({
       const item = items.find((i) => i.id === sheet.item_id);
       if (!item) continue;
       const neededUnits = sheet.quantity_per_sale * quantity;
-      const totalConversion = item.units_per_package * (item.recipe_units_per_consumption || 1);
-      const neededPackages = neededUnits / totalConversion;
+      const sheetUnit = sheet.unit || item.recipe_unit || item.sub_unit || item.unit;
+      let neededPackages: number;
+      if (sheetUnit === item.unit) {
+        neededPackages = neededUnits;
+      } else if (sheetUnit === item.sub_unit) {
+        neededPackages = neededUnits / (item.units_per_package || 1);
+      } else {
+        const totalConversion = (item.units_per_package || 1) * (item.recipe_units_per_consumption || 1);
+        neededPackages = neededUnits / totalConversion;
+      }
       if ((item.current_stock || 0) < neededPackages) {
         issues.push({ itemName: item.name, needed: neededPackages, available: item.current_stock || 0, unit: item.unit });
       }
@@ -628,8 +645,21 @@ export default function POSInterface({
             const item = items.find((i) => i.id === sheet.item_id);
             if (!item) continue;
             const neededUnits = sheet.quantity_per_sale * cartItem.quantity;
-            const totalConversion = item.units_per_package * (item.recipe_units_per_consumption || 1);
-            const neededPackages = neededUnits / totalConversion;
+            const sheetUnit = sheet.unit || item.recipe_unit || item.sub_unit || item.unit;
+            let neededPackages: number;
+
+            if (sheetUnit === item.unit) {
+              // Quantity is in purchase units — direct deduction
+              neededPackages = neededUnits;
+            } else if (sheetUnit === item.sub_unit) {
+              // Quantity is in consumption units — divide by units_per_package
+              neededPackages = neededUnits / (item.units_per_package || 1);
+            } else {
+              // Quantity is in recipe units — divide by full conversion
+              const totalConversion = (item.units_per_package || 1) * (item.recipe_units_per_consumption || 1);
+              neededPackages = neededUnits / totalConversion;
+            }
+
             const newStock = (item.current_stock || 0) - neededPackages;
             await supabase.from('items').update({
               current_stock: newStock, last_count_date: new Date().toISOString().split('T')[0], last_counted_by: user.id,
@@ -1420,7 +1450,7 @@ export default function POSInterface({
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => setProductIngredients(prev => [...prev, { item_id: '', quantity: 0 }])}
+                    onClick={() => setProductIngredients(prev => [...prev, { item_id: '', quantity: 0, unit: '' }])}
                   >
                     <Plus className="mr-1 h-3 w-3" />
                     {t('dishes.add_ingredient')}
@@ -1441,7 +1471,18 @@ export default function POSInterface({
                         (item) => !item.direct_sale && !selectedIds.includes(item.id)
                       );
                       const stockItem = items.find((i) => i.id === ing.item_id);
-                      const recipeUnit = stockItem?.recipe_unit || stockItem?.sub_unit || stockItem?.unit || 'un';
+
+                      // Build unit options for this item (3 levels)
+                      const unitOptions: { value: string; label: string }[] = [];
+                      if (stockItem) {
+                        unitOptions.push({ value: stockItem.unit, label: `${stockItem.unit} (compra)` });
+                        if (stockItem.sub_unit) {
+                          unitOptions.push({ value: stockItem.sub_unit, label: `${stockItem.sub_unit} (consumo)` });
+                        }
+                        if (stockItem.recipe_unit) {
+                          unitOptions.push({ value: stockItem.recipe_unit, label: `${stockItem.recipe_unit} (receita)` });
+                        }
+                      }
 
                       return (
                         <div
@@ -1451,8 +1492,10 @@ export default function POSInterface({
                           <Select
                             value={ing.item_id || undefined}
                             onValueChange={(value) => {
+                              const selected = items.find(i => i.id === value);
+                              const defaultUnit = selected?.recipe_unit || selected?.sub_unit || selected?.unit || 'un';
                               setProductIngredients(prev =>
-                                prev.map((item, i) => i === index ? { ...item, item_id: value } : item)
+                                prev.map((item, i) => i === index ? { ...item, item_id: value, unit: defaultUnit } : item)
                               );
                             }}
                           >
@@ -1462,7 +1505,7 @@ export default function POSInterface({
                             <SelectContent>
                               {availableItems.map((item) => (
                                 <SelectItem key={item.id} value={item.id}>
-                                  {item.name} ({item.recipe_unit || item.sub_unit || item.unit})
+                                  {item.name}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -1479,12 +1522,28 @@ export default function POSInterface({
                                 prev.map((item, i) => i === index ? { ...item, quantity: val } : item)
                               );
                             }}
-                            className="w-24"
+                            className="w-20"
                           />
-                          {ing.item_id && (
-                            <span className="text-sm text-muted-foreground w-12">
-                              {recipeUnit}
-                            </span>
+                          {ing.item_id && unitOptions.length > 0 && (
+                            <Select
+                              value={ing.unit || unitOptions[0]?.value}
+                              onValueChange={(value) => {
+                                setProductIngredients(prev =>
+                                  prev.map((item, i) => i === index ? { ...item, unit: value } : item)
+                                );
+                              }}
+                            >
+                              <SelectTrigger className="w-28">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {unitOptions.map((opt) => (
+                                  <SelectItem key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           )}
                           <Button
                             type="button"

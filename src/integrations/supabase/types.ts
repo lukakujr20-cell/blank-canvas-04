@@ -655,6 +655,7 @@ export type Database = {
           id: string
           item_id: string
           quantity_per_sale: number
+          unit: string | null
         }
         Insert: {
           created_at?: string
@@ -662,6 +663,7 @@ export type Database = {
           id?: string
           item_id: string
           quantity_per_sale?: number
+          unit?: string | null
         }
         Update: {
           created_at?: string
@@ -669,6 +671,7 @@ export type Database = {
           id?: string
           item_id?: string
           quantity_per_sale?: number
+          unit?: string | null
         }
         Relationships: [
           {
