@@ -639,6 +639,16 @@ const translations: Record<Language, Record<string, string>> = {
     'permissions.inventory_management_desc': 'Criar/editar categorias e itens',
     'permissions.dashboard': 'Financeiro / Dashboard',
     'permissions.dashboard_desc': 'Acesso aos relatórios de vendas',
+
+    // Users - Super Admin grouping
+    'users.all_restaurants': 'Todos os Restaurantes',
+    'users.restaurant_section': 'Restaurante',
+    'users.select_restaurant': 'Selecione o restaurante',
+    'users.user_count': 'usuário',
+    'users.user_count_plural': 'usuários',
+    'users.no_restaurant': 'Sem restaurante vinculado',
+    'users.owner': 'Proprietário',
+    'users.employees': 'Funcionários',
   },
   'es': {
     // Auth
@@ -1269,6 +1279,16 @@ const translations: Record<Language, Record<string, string>> = {
     'permissions.inventory_management_desc': 'Crear/editar categorías y artículos',
     'permissions.dashboard': 'Financiero / Dashboard',
     'permissions.dashboard_desc': 'Acceso a los informes de ventas',
+
+    // Users - Super Admin grouping
+    'users.all_restaurants': 'Todos los Restaurantes',
+    'users.restaurant_section': 'Restaurante',
+    'users.select_restaurant': 'Seleccione el restaurante',
+    'users.user_count': 'usuario',
+    'users.user_count_plural': 'usuarios',
+    'users.no_restaurant': 'Sin restaurante vinculado',
+    'users.owner': 'Propietario',
+    'users.employees': 'Empleados',
   },
   'en': {
     // Auth
@@ -1899,6 +1919,16 @@ const translations: Record<Language, Record<string, string>> = {
     'permissions.inventory_management_desc': 'Create/edit categories and items',
     'permissions.dashboard': 'Financial / Dashboard',
     'permissions.dashboard_desc': 'Access to sales reports',
+
+    // Users - Super Admin grouping
+    'users.all_restaurants': 'All Restaurants',
+    'users.restaurant_section': 'Restaurant',
+    'users.select_restaurant': 'Select restaurant',
+    'users.user_count': 'user',
+    'users.user_count_plural': 'users',
+    'users.no_restaurant': 'No linked restaurant',
+    'users.owner': 'Owner',
+    'users.employees': 'Employees',
   },
 };
 
