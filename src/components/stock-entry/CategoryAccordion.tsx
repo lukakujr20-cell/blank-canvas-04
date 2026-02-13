@@ -8,6 +8,13 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon } from 'lucide-react';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Table,
   TableBody,
   TableCell,
@@ -23,6 +30,8 @@ interface Item {
   category_id: string;
   name: string;
   unit: string;
+  sub_unit: string | null;
+  recipe_unit: string | null;
   min_stock: number;
   current_stock: number;
   expiry_date: string | null;
@@ -43,6 +52,7 @@ interface CategoryAccordionProps {
   editedItems: Map<string, EditedItem>;
   onStockChange: (itemId: string, value: string) => void;
   onExpiryChange: (itemId: string, date: Date | undefined) => void;
+  onUnitChange?: (itemId: string, unit: string) => void;
   getDisplayStock: (item: Item) => number;
   getDisplayExpiry: (item: Item) => string | null;
   defaultOpen?: boolean;
@@ -88,6 +98,7 @@ export function CategoryAccordion({
   editedItems,
   onStockChange,
   onExpiryChange,
+  onUnitChange,
   getDisplayStock,
   getDisplayExpiry,
   defaultOpen = true,
@@ -95,6 +106,19 @@ export function CategoryAccordion({
   const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const Icon = getCategoryIcon(categoryName);
+
+  const getUnitOptions = (item: Item) => {
+    const options = [
+      { value: item.unit, label: `${item.unit} (${t('inventory.primary')})` },
+    ];
+    if (item.sub_unit) {
+      options.push({ value: item.sub_unit, label: `${item.sub_unit} (${t('inventory.consumption')})` });
+    }
+    if (item.recipe_unit) {
+      options.push({ value: item.recipe_unit, label: `${item.recipe_unit} (${t('inventory.recipe')})` });
+    }
+    return options;
+  };
 
   const getRowClassName = (item: Item) => {
     const expiry = getDisplayExpiry(item);
@@ -153,15 +177,28 @@ export function CategoryAccordion({
             <TableBody>
               {items.map((item, index) => (
                 <TableRow
-                  key={item.id}
-                  className={cn(
-                    getRowClassName(item),
-                    index % 2 === 1 && !getRowClassName(item) && 'bg-table-row-alt'
-                  )}
-                >
-                  <TableCell className="font-medium">{item.name}</TableCell>
-                  <TableCell>{item.unit}</TableCell>
-                  <TableCell>{item.min_stock}</TableCell>
+                   key={item.id}
+                   className={cn(
+                     getRowClassName(item),
+                     index % 2 === 1 && !getRowClassName(item) && 'bg-table-row-alt'
+                   )}
+                 >
+                   <TableCell className="font-medium">{item.name}</TableCell>
+                   <TableCell className="p-2">
+                     <Select defaultValue={item.unit} onValueChange={(value) => onUnitChange?.(item.id, value)}>
+                       <SelectTrigger className="h-9 w-32">
+                         <SelectValue />
+                       </SelectTrigger>
+                       <SelectContent>
+                         {getUnitOptions(item).map((opt) => (
+                           <SelectItem key={opt.value} value={opt.value}>
+                             {opt.label}
+                           </SelectItem>
+                         ))}
+                       </SelectContent>
+                     </Select>
+                   </TableCell>
+                   <TableCell>{item.min_stock}</TableCell>
                   <TableCell className={cn('p-2', getStockCellClassName(item))}>
                     <Input
                       type="number"
