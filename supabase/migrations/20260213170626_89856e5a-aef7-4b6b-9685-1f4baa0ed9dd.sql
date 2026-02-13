@@ -1,0 +1,1 @@
+UPDATE public.items SET recipe_unit = 'fatia' WHERE recipe_units_per_consumption IS NOT NULL AND recipe_units_per_consumption > 0 AND recipe_unit IS NULL;
