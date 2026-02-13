@@ -90,8 +90,10 @@ interface Profile {
 }
 
 import { GASTRO_UNIT_GROUPS, ALL_UNITS, getUnitLabel } from '@/lib/unitConversions';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function Inventory() {
+  const { t } = useLanguage();
   const { user, isHost, isKitchen, isAdmin, restaurantId } = useAuth();
   const isReadOnly = isKitchen;
   const { toast } = useToast();
@@ -653,7 +655,7 @@ export default function Inventory() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="minStock">Estoque mínimo</Label>
+                  <Label htmlFor="minStock">{t('inventory.min_stock')}</Label>
                   <Input
                     id="minStock"
                     type="number"
@@ -668,9 +670,9 @@ export default function Inventory() {
 
               {/* Level 2: Units per package + sub-unit */}
               <div className="space-y-2">
-                <Label>Unidades por pacote (Nível 2)</Label>
+                <Label>{t('inventory.units_per_pack')}</Label>
                 <p className="text-xs text-muted-foreground">
-                  Quantas unidades de consumo vêm em cada <strong>{getUnitLabel(newItem.unit)}</strong>?
+                  {t('inventory.how_many_consumption')} <strong>{getUnitLabel(newItem.unit)}</strong>?
                 </p>
                 <div className="grid grid-cols-2 gap-2">
                   <Input
@@ -686,7 +688,7 @@ export default function Inventory() {
                     onValueChange={(value) => setNewItem({ ...newItem, sub_unit: value })}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Sub-unidade" />
+                      <SelectValue placeholder={t('inventory.sub_unit_placeholder')} />
                     </SelectTrigger>
                     <SelectContent>
                       {GASTRO_UNIT_GROUPS.map((group) => (
@@ -719,23 +721,23 @@ export default function Inventory() {
                   onClick={() => setNewItem({ ...newItem, showRecipeUnit: true, recipe_unit: newItem.recipe_unit || 'fatia' })}
                 >
                   <Plus className="mr-2 h-4 w-4" />
-                  Adicionar Medida de Receita (Nível 3)
+                  {t('inventory.add_recipe_measurement')}
                 </Button>
               ) : (
                 <div className="space-y-2 rounded-lg border border-dashed p-3">
                   <div className="flex items-center justify-between">
-                    <Label>Medida de Receita (Nível 3)</Label>
+                    <Label>{t('inventory.recipe_measurement')}</Label>
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
                       onClick={() => setNewItem({ ...newItem, showRecipeUnit: false, recipe_unit: '', recipe_units_per_consumption: 0 })}
                     >
-                      Remover
+                      {t('inventory.remove')}
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Cada <strong>{getUnitLabel(newItem.sub_unit || 'un')}</strong> rende quantas unidades de receita?
+                    {t('inventory.each')} <strong>{getUnitLabel(newItem.sub_unit || 'un')}</strong> {t('inventory.how_many_recipe')}
                   </p>
                   <div className="grid grid-cols-2 gap-2">
                     <Input
@@ -753,7 +755,7 @@ export default function Inventory() {
                       onValueChange={(value) => setNewItem({ ...newItem, recipe_unit: value })}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Unidade de receita" />
+                        <SelectValue placeholder={t('inventory.recipe_unit_placeholder')} />
                       </SelectTrigger>
                       <SelectContent>
                         {GASTRO_UNIT_GROUPS.map((group) => (
@@ -775,7 +777,7 @@ export default function Inventory() {
                         1 {getUnitLabel(newItem.sub_unit || 'un')} = {newItem.recipe_units_per_consumption} {getUnitLabel(newItem.recipe_unit || 'fatia')}
                       </p>
                       <p className="text-xs font-medium text-primary">
-                        Total: 1 {getUnitLabel(newItem.unit)} = {newItem.units_per_package * newItem.recipe_units_per_consumption} {getUnitLabel(newItem.recipe_unit || 'fatia')}
+                        {t('inventory.total')}: 1 {getUnitLabel(newItem.unit)} = {newItem.units_per_package * newItem.recipe_units_per_consumption} {getUnitLabel(newItem.recipe_unit || 'fatia')}
                       </p>
                     </div>
                   )}
@@ -793,17 +795,17 @@ export default function Inventory() {
                 <div className="flex-1">
                   <Label htmlFor="directSale" className="cursor-pointer font-medium flex items-center gap-2">
                     <ShoppingCart className="h-4 w-4" />
-                    Venda Direta
+                    {t('inventory.direct_sale')}
                   </Label>
                   <p className="text-xs text-muted-foreground">
-                    Marque para itens vendidos diretamente (bebidas, produtos prontos). Não exige ficha técnica.
+                    {t('inventory.direct_sale_desc')}
                   </p>
                 </div>
               </div>
               {newItem.direct_sale && (
                 <>
                   <div className="space-y-2">
-                    <Label htmlFor="salePrice">Preço de venda (€)</Label>
+                    <Label htmlFor="salePrice">{t('inventory.sale_price')} (€)</Label>
                     <Input
                       id="salePrice"
                       type="number"
@@ -817,7 +819,7 @@ export default function Inventory() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Categoria de Venda (PDV)</Label>
+                    <Label>{t('inventory.sale_category')}</Label>
                     <Select
                       value={newItem.pos_category_id || 'none'}
                       onValueChange={(value) =>
@@ -825,7 +827,7 @@ export default function Inventory() {
                       }
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecione a categoria de venda" />
+                        <SelectValue placeholder={t('inventory.select_sale_category')} />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">Nenhuma</SelectItem>
