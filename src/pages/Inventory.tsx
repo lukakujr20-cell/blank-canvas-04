@@ -92,7 +92,7 @@ interface Profile {
 import { GASTRO_UNIT_GROUPS, ALL_UNITS, getUnitLabel } from '@/lib/unitConversions';
 
 export default function Inventory() {
-  const { user, isHost, isKitchen, isAdmin } = useAuth();
+  const { user, isHost, isKitchen, isAdmin, restaurantId } = useAuth();
   const isReadOnly = isKitchen;
   const { toast } = useToast();
   const [categories, setCategories] = useState<Category[]>([]);
@@ -178,23 +178,64 @@ export default function Inventory() {
   };
 
   const handleCreateCategory = async () => {
-    if (!newCategoryName.trim()) return;
+    const trimmedName = newCategoryName.trim();
+    if (!trimmedName) return;
+
+    if (!restaurantId) {
+      toast({
+        title: 'Erro de configuração',
+        description: 'Seu perfil não está vinculado a um restaurante. Contacte o administrador.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Check for duplicate within the same restaurant
+    const duplicate = categories.find(
+      (c) => c.name.toLowerCase() === trimmedName.toLowerCase()
+    );
+    if (duplicate) {
+      toast({
+        title: 'Categoria já existe',
+        description: `A categoria "${trimmedName}" já está cadastrada neste restaurante.`,
+        variant: 'destructive',
+      });
+      return;
+    }
 
     try {
       const { error } = await supabase.from('categories').insert({
-        name: newCategoryName.trim(),
+        name: trimmedName,
+        restaurant_id: restaurantId,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating category:', error);
+        if (error.code === '42501') {
+          toast({
+            title: 'Sem permissão',
+            description: 'Você não tem permissão para criar categorias.',
+            variant: 'destructive',
+          });
+        } else {
+          toast({
+            title: 'Erro ao criar categoria',
+            description: error.message,
+            variant: 'destructive',
+          });
+        }
+        return;
+      }
 
       toast({ title: 'Categoria criada com sucesso!' });
       setNewCategoryName('');
       setCategoryModalOpen(false);
       fetchData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating category:', error);
       toast({
-        title: 'Erro ao criar categoria',
+        title: 'Erro de conexão',
+        description: 'Não foi possível conectar ao servidor. Tente novamente.',
         variant: 'destructive',
       });
     }
@@ -247,6 +288,15 @@ export default function Inventory() {
     if (!newItem.name.trim() || !newItem.category_id) return;
 
     try {
+      if (!restaurantId) {
+        toast({
+          title: 'Erro de configuração',
+          description: 'Seu perfil não está vinculado a um restaurante.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
       const { error } = await supabase.from('items').insert({
         name: newItem.name.trim(),
         category_id: newItem.category_id,
@@ -260,6 +310,7 @@ export default function Inventory() {
         sub_unit: newItem.sub_unit || null,
         recipe_unit: newItem.showRecipeUnit && newItem.recipe_unit ? newItem.recipe_unit : null,
         recipe_units_per_consumption: newItem.showRecipeUnit && newItem.recipe_units_per_consumption > 0 ? newItem.recipe_units_per_consumption : null,
+        restaurant_id: restaurantId,
       });
 
       if (error) throw error;
