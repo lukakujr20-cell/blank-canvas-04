@@ -412,7 +412,7 @@ export default function Users() {
           <div className="flex items-center gap-1">
             {canManage && (
               <>
-                {(currentUserRole === 'host' || currentUserRole === 'super_admin') && (u.role === 'staff' || u.role === 'cozinha') && (
+                {(currentUserRole === 'host' || currentUserRole === 'super_admin') && (u.role === 'staff' || u.role === 'cozinha' || u.role === 'admin') && (
                   <Button
                     variant="ghost"
                     size="icon"
