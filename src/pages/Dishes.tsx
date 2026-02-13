@@ -252,7 +252,8 @@ export default function Dishes() {
     if (field === 'item_id') {
       const item = getItemById(value as string);
       if (item) {
-        updated[index].unit = item.unit;
+        // Default to the most granular unit available
+        updated[index].unit = item.recipe_unit || item.sub_unit || item.unit;
       }
     }
     setIngredients(updated);
@@ -761,7 +762,7 @@ export default function Dishes() {
                                   value={ing.unit || getItemById(ing.item_id)?.unit || ''}
                                   onValueChange={(value) => updateIngredient(index, 'unit', value)}
                                 >
-                                  <SelectTrigger className="w-28">
+                                  <SelectTrigger className="w-40">
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>
