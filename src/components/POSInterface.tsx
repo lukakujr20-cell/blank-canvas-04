@@ -330,6 +330,16 @@ export default function POSInterface({
         destination: newCatDestination,
       });
       if (error) throw error;
+
+      // Auto-sync: also create a matching stock category
+      const { error: stockCatError } = await supabase.from('categories').insert({
+        name: trimmed,
+        restaurant_id: restaurantId,
+      });
+      if (stockCatError) {
+        console.warn('Stock category sync skipped (may already exist):', stockCatError.message);
+      }
+
       toast({ title: t('pos.category_created') });
       setNewCatName('');
       setNewCatDestination('kitchen');
@@ -1441,6 +1451,8 @@ export default function POSInterface({
                         const restaurantId = await getRestaurantId();
                         const { data, error } = await supabase.from('pos_categories').insert({ name: newPosCategoryName.trim(), restaurant_id: restaurantId, destination: 'kitchen' }).select().single();
                         if (!error && data) {
+                          // Auto-sync: also create stock category
+                          await supabase.from('categories').insert({ name: newPosCategoryName.trim(), restaurant_id: restaurantId });
                           setPosCategories(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
                           setProductPosCatId(data.id);
                           setNewPosCategoryName('');
@@ -1459,6 +1471,8 @@ export default function POSInterface({
                       const restaurantId = await getRestaurantId();
                       const { data, error } = await supabase.from('pos_categories').insert({ name: newPosCategoryName.trim(), restaurant_id: restaurantId, destination: 'kitchen' }).select().single();
                       if (!error && data) {
+                        // Auto-sync: also create stock category
+                        await supabase.from('categories').insert({ name: newPosCategoryName.trim(), restaurant_id: restaurantId });
                         setPosCategories(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
                         setProductPosCatId(data.id);
                         setNewPosCategoryName('');
