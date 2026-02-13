@@ -158,8 +158,8 @@ export default function Inventory() {
     } catch (error) {
       console.error('Error fetching data:', error);
       toast({
-        title: 'Erro ao carregar dados',
-        description: 'Não foi possível carregar os dados do estoque.',
+        title: t('inventory.error_loading'),
+        description: t('inventory.error_loading_desc'),
         variant: 'destructive',
       });
     } finally {
@@ -185,8 +185,8 @@ export default function Inventory() {
 
     if (!restaurantId) {
       toast({
-        title: 'Erro de configuração',
-        description: 'Seu perfil não está vinculado a um restaurante. Contacte o administrador.',
+        title: t('inventory.error_config'),
+        description: t('inventory.error_config_desc'),
         variant: 'destructive',
       });
       return;
@@ -198,8 +198,8 @@ export default function Inventory() {
     );
     if (duplicate) {
       toast({
-        title: 'Categoria já existe',
-        description: `A categoria "${trimmedName}" já está cadastrada neste restaurante.`,
+        title: t('inventory.category_exists'),
+        description: `"${trimmedName}"`,
         variant: 'destructive',
       });
       return;
@@ -215,13 +215,13 @@ export default function Inventory() {
         console.error('Error creating category:', error);
         if (error.code === '42501') {
           toast({
-            title: 'Sem permissão',
-            description: 'Você não tem permissão para criar categorias.',
+            title: t('inventory.no_permission'),
+            description: t('inventory.no_permission_desc'),
             variant: 'destructive',
           });
         } else {
           toast({
-            title: 'Erro ao criar categoria',
+            title: t('inventory.error_create_category'),
             description: error.message,
             variant: 'destructive',
           });
@@ -229,15 +229,15 @@ export default function Inventory() {
         return;
       }
 
-      toast({ title: 'Categoria criada com sucesso!' });
+      toast({ title: t('inventory.category_created') });
       setNewCategoryName('');
       setCategoryModalOpen(false);
       fetchData();
     } catch (error: any) {
       console.error('Error creating category:', error);
       toast({
-        title: 'Erro de conexão',
-        description: 'Não foi possível conectar ao servidor. Tente novamente.',
+        title: t('inventory.error_connection'),
+        description: t('inventory.error_connection_desc'),
         variant: 'destructive',
       });
     }
@@ -254,7 +254,7 @@ export default function Inventory() {
 
       if (error) throw error;
 
-      toast({ title: 'Categoria atualizada!' });
+      toast({ title: t('inventory.category_updated') });
       setNewCategoryName('');
       setEditingCategory(null);
       setCategoryModalOpen(false);
@@ -262,25 +262,25 @@ export default function Inventory() {
     } catch (error) {
       console.error('Error updating category:', error);
       toast({
-        title: 'Erro ao atualizar categoria',
+        title: t('inventory.error_update_category'),
         variant: 'destructive',
       });
     }
   };
 
   const handleDeleteCategory = async (categoryId: string) => {
-    if (!confirm('Tem certeza? Isso irá excluir todos os itens desta categoria.')) return;
+    if (!confirm(t('inventory.confirm_delete_category'))) return;
 
     try {
       const { error } = await supabase.from('categories').delete().eq('id', categoryId);
       if (error) throw error;
 
-      toast({ title: 'Categoria excluída!' });
+      toast({ title: t('inventory.category_deleted') });
       fetchData();
     } catch (error) {
       console.error('Error deleting category:', error);
       toast({
-        title: 'Erro ao excluir categoria',
+        title: t('inventory.error_delete_category'),
         variant: 'destructive',
       });
     }
@@ -292,8 +292,8 @@ export default function Inventory() {
     try {
       if (!restaurantId) {
         toast({
-          title: 'Erro de configuração',
-          description: 'Seu perfil não está vinculado a um restaurante.',
+          title: t('inventory.error_config'),
+          description: t('inventory.error_config_desc'),
           variant: 'destructive',
         });
         return;
@@ -317,14 +317,14 @@ export default function Inventory() {
 
       if (error) throw error;
 
-      toast({ title: 'Item criado com sucesso!' });
+      toast({ title: t('inventory.item_created') });
       setNewItem({ name: '', category_id: '', unit: 'un', min_stock: 0, supplier_id: '', units_per_package: 1, direct_sale: false, price: 0, pos_category_id: '', sub_unit: '', recipe_unit: '', recipe_units_per_consumption: 0, showRecipeUnit: false });
       setItemModalOpen(false);
       fetchData();
     } catch (error) {
       console.error('Error creating item:', error);
       toast({
-        title: 'Erro ao criar item',
+        title: t('inventory.error_create_item'),
         variant: 'destructive',
       });
     }
@@ -353,7 +353,7 @@ export default function Inventory() {
 
       if (error) throw error;
 
-      toast({ title: 'Item atualizado!' });
+      toast({ title: t('inventory.item_updated') });
       setNewItem({ name: '', category_id: '', unit: 'un', min_stock: 0, supplier_id: '', units_per_package: 1, direct_sale: false, price: 0, pos_category_id: '', sub_unit: '', recipe_unit: '', recipe_units_per_consumption: 0, showRecipeUnit: false });
       setEditingItem(null);
       setItemModalOpen(false);
@@ -361,7 +361,7 @@ export default function Inventory() {
     } catch (error) {
       console.error('Error updating item:', error);
       toast({
-        title: 'Erro ao atualizar item',
+        title: t('inventory.error_update_item'),
         variant: 'destructive',
       });
     }
@@ -374,18 +374,18 @@ export default function Inventory() {
   };
 
   const handleDeleteItem = async (itemId: string) => {
-    if (!confirm('Tem certeza que deseja excluir este item?')) return;
+    if (!confirm(t('inventory.confirm_delete_item'))) return;
 
     try {
       const { error } = await supabase.from('items').delete().eq('id', itemId);
       if (error) throw error;
 
-      toast({ title: 'Item excluído!' });
+      toast({ title: t('inventory.item_deleted') });
       fetchData();
     } catch (error) {
       console.error('Error deleting item:', error);
       toast({
-        title: 'Erro ao excluir item',
+        title: t('inventory.error_delete_item'),
         variant: 'destructive',
       });
     }
@@ -411,7 +411,7 @@ export default function Inventory() {
   const getProfileName = (userId: string | null) => {
     if (!userId) return '-';
     const profile = profiles.find((p) => p.id === userId);
-    return profile?.full_name || 'Usuário';
+    return profile?.full_name || t('inventory.user');
   };
 
   const openEditCategory = (category: Category) => {
@@ -501,10 +501,10 @@ export default function Inventory() {
         new_expiry: newExpiry,
         changed_by: user?.id,
         movement_type: stockDiff > 0 ? 'entry' : stockDiff < 0 ? 'adjustment' : 'adjustment',
-        reason: 'Alteração direta na gestão de estoque',
+        reason: t('inventory.stock_reason'),
       });
 
-      toast({ title: 'Item atualizado com sucesso!' });
+      toast({ title: t('inventory.item_saved') });
       setInlineEdits(prev => {
         const updated = new Map(prev);
         updated.delete(itemId);
@@ -513,7 +513,7 @@ export default function Inventory() {
       fetchData();
     } catch (error) {
       console.error('Error saving inline edit:', error);
-      toast({ title: 'Erro ao salvar alteração', variant: 'destructive' });
+      toast({ title: t('inventory.error_save_inline'), variant: 'destructive' });
     } finally {
       setSavingInline(prev => {
         const updated = new Set(prev);
@@ -540,12 +540,12 @@ export default function Inventory() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold md:text-3xl">
-              {isReadOnly ? 'Consulta de Estoque' : 'Gestão de Estoque'}
+              {isReadOnly ? t('inventory.title_readonly') : t('inventory.title')}
             </h1>
             <p className="mt-1 text-muted-foreground">
               {isReadOnly
-                ? 'Visualize os itens e quantidades disponíveis no estoque'
-                : 'Cadastre e organize categorias e itens do estoque'}
+                ? t('inventory.subtitle_readonly')
+                : t('inventory.subtitle')}
             </p>
           </div>
           {!isReadOnly && (
@@ -560,21 +560,21 @@ export default function Inventory() {
                     }}
                   >
                     <FolderPlus className="mr-2 h-4 w-4" />
-                    Nova Categoria
+                    {t('inventory.new_category')}
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>
-                      {editingCategory ? 'Editar Categoria' : 'Nova Categoria'}
+                      {editingCategory ? t('inventory.edit_category') : t('inventory.new_category')}
                     </DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4 pt-4">
                     <div className="space-y-2">
-                      <Label htmlFor="categoryName">Nome da categoria</Label>
+                      <Label htmlFor="categoryName">{t('inventory.category_name')}</Label>
                       <Input
                         id="categoryName"
-                        placeholder="Ex: Proteínas, Laticínios..."
+                        placeholder={t('inventory.category_placeholder')}
                         value={newCategoryName}
                         onChange={(e) => setNewCategoryName(e.target.value)}
                       />
@@ -583,7 +583,7 @@ export default function Inventory() {
                       className="w-full"
                       onClick={editingCategory ? handleUpdateCategory : handleCreateCategory}
                     >
-                      {editingCategory ? 'Salvar Alterações' : 'Criar Categoria'}
+                      {editingCategory ? t('inventory.save_changes') : t('inventory.create_category')}
                     </Button>
                   </div>
                 </DialogContent>
@@ -596,21 +596,21 @@ export default function Inventory() {
         <Dialog open={itemModalOpen} onOpenChange={setItemModalOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>{editingItem ? 'Editar Item' : 'Novo Item'}</DialogTitle>
+              <DialogTitle>{editingItem ? t('inventory.edit_item') : t('inventory.new_item')}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 pt-4">
               <div className="space-y-2">
-                <Label htmlFor="itemName">Nome do produto</Label>
+                <Label htmlFor="itemName">{t('inventory.product_name')}</Label>
                 <Input
                   id="itemName"
-                  placeholder="Ex: Carne de sol, Frango..."
+                  placeholder={t('inventory.product_placeholder')}
                   value={newItem.name}
                   onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
                 />
               </div>
               {!editingItem && (
                 <div className="space-y-2">
-                  <Label>Categoria</Label>
+                  <Label>{t('inventory.category')}</Label>
                   <Select
                     value={newItem.category_id}
                     onValueChange={(value) =>
@@ -618,7 +618,7 @@ export default function Inventory() {
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione uma categoria" />
+                      <SelectValue placeholder={t('inventory.select_category')} />
                     </SelectTrigger>
                     <SelectContent>
                       {categories.map((cat) => (
@@ -632,7 +632,7 @@ export default function Inventory() {
               )}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Unidade de Compra</Label>
+                  <Label>{t('inventory.purchase_unit')}</Label>
                   <Select
                     value={newItem.unit}
                     onValueChange={(value) => setNewItem({ ...newItem, unit: value })}
@@ -830,7 +830,7 @@ export default function Inventory() {
                         <SelectValue placeholder={t('inventory.select_sale_category')} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none">Nenhuma</SelectItem>
+                        <SelectItem value="none">{t('inventory.none')}</SelectItem>
                         {posCategories.map((cat) => (
                           <SelectItem key={cat.id} value={cat.id}>
                             {cat.name}
@@ -839,14 +839,14 @@ export default function Inventory() {
                       </SelectContent>
                     </Select>
                     <p className="text-xs text-muted-foreground">
-                      Categoria para organizar este item no PDV do garçom
+                      {t('inventory.sale_category_hint')}
                     </p>
                   </div>
                 </>
               )}
               {suppliers.length > 0 && (
                 <div className="space-y-2">
-                  <Label>Fornecedor</Label>
+                  <Label>{t('inventory.supplier')}</Label>
                   <Select
                     value={newItem.supplier_id}
                     onValueChange={(value) =>
@@ -854,10 +854,10 @@ export default function Inventory() {
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione um fornecedor (opcional)" />
+                      <SelectValue placeholder={t('inventory.supplier_placeholder')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">Nenhum</SelectItem>
+                      <SelectItem value="none">{t('inventory.supplier_none')}</SelectItem>
                       {suppliers.map((supplier) => (
                         <SelectItem key={supplier.id} value={supplier.id}>
                           {supplier.name}
@@ -871,7 +871,7 @@ export default function Inventory() {
                 className="w-full"
                 onClick={editingItem ? handleUpdateItem : handleCreateItem}
               >
-                {editingItem ? 'Salvar Alterações' : 'Criar Item'}
+                {editingItem ? t('inventory.save_changes') : t('inventory.create_item')}
               </Button>
             </div>
           </DialogContent>
@@ -886,9 +886,9 @@ export default function Inventory() {
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
               <Package className="h-12 w-12 text-muted-foreground/50" />
-              <h3 className="mt-4 text-lg font-medium">Nenhuma categoria</h3>
+              <h3 className="mt-4 text-lg font-medium">{t('inventory.no_categories')}</h3>
               <p className="mt-2 text-center text-muted-foreground">
-                Comece criando sua primeira categoria de produtos.
+                {t('inventory.start_creating')}
               </p>
               <Button
                 className="mt-4"
@@ -899,7 +899,7 @@ export default function Inventory() {
                 }}
               >
                 <FolderPlus className="mr-2 h-4 w-4" />
-                Criar Categoria
+                {t('inventory.create_category')}
               </Button>
             </CardContent>
           </Card>
@@ -926,7 +926,7 @@ export default function Inventory() {
                           {category.name}
                         </CardTitle>
                         <span className="text-sm font-normal text-muted-foreground">
-                          ({categoryItems.length} {categoryItems.length === 1 ? 'item' : 'itens'})
+                          ({categoryItems.length} {categoryItems.length === 1 ? t('inventory.item') : t('inventory.items')})
                         </span>
                       </div>
                       {!isReadOnly && (
@@ -960,13 +960,13 @@ export default function Inventory() {
                     <CardContent className="p-0">
                       {categoryItems.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-                          <p>Nenhum item nesta categoria</p>
+                          <p>{t('inventory.no_items_category')}</p>
                           {!isReadOnly && (
                             <Button
                               variant="link"
                               onClick={() => openAddItem(category.id)}
                             >
-                              Adicionar primeiro item
+                              {t('inventory.add_first_item')}
                             </Button>
                           )}
                         </div>
@@ -975,14 +975,14 @@ export default function Inventory() {
                           <Table>
                             <TableHeader>
                               <TableRow className="bg-table-header">
-                                <TableHead className="font-semibold">Produto</TableHead>
-                                <TableHead className="font-semibold">Fornecedor</TableHead>
-                                <TableHead className="font-semibold">Unidade</TableHead>
-                                <TableHead className="font-semibold">Est. Mínimo</TableHead>
-                                <TableHead className="font-semibold">Qtd Atual</TableHead>
-                                <TableHead className="font-semibold">Data Contagem</TableHead>
-                                <TableHead className="font-semibold">Validade</TableHead>
-                                <TableHead className="font-semibold">Responsável</TableHead>
+                                <TableHead className="font-semibold">{t('inventory.th_product')}</TableHead>
+                                <TableHead className="font-semibold">{t('inventory.th_supplier')}</TableHead>
+                                <TableHead className="font-semibold">{t('inventory.th_unit')}</TableHead>
+                                <TableHead className="font-semibold">{t('inventory.th_min_stock')}</TableHead>
+                                <TableHead className="font-semibold">{t('inventory.th_current_qty')}</TableHead>
+                                <TableHead className="font-semibold">{t('inventory.th_count_date')}</TableHead>
+                                <TableHead className="font-semibold">{t('inventory.th_expiry')}</TableHead>
+                                <TableHead className="font-semibold">{t('inventory.th_responsible')}</TableHead>
                                 {!isReadOnly && <TableHead className="w-[100px]"></TableHead>}
                               </TableRow>
                             </TableHeader>
@@ -1038,7 +1038,7 @@ export default function Inventory() {
                                             <CalendarIcon className="mr-1 h-3 w-3" />
                                             {getInlineExpiry(item)
                                               ? format(parseISO(getInlineExpiry(item)!), 'dd/MM/yyyy')
-                                              : 'Selecionar'}
+                                              : t('inventory.select_date')}
                                           </Button>
                                         </PopoverTrigger>
                                         <PopoverContent className="w-auto p-0" align="start">
@@ -1070,7 +1070,7 @@ export default function Inventory() {
                                             className="h-8 px-3 gap-1"
                                           >
                                             <Save className="h-4 w-4" />
-                                            Salvar
+                                            {t('inventory.save')}
                                           </Button>
                                         )}
                                         <Button
