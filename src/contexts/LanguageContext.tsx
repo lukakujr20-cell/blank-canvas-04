@@ -484,6 +484,13 @@ const translations: Record<Language, Record<string, string>> = {
     'dishes.unit_primary': 'Compra',
     'dishes.unit_secondary': 'Consumo',
     'dishes.unit_tertiary': 'Receita',
+    'dishes.sale_category': 'Categoria de Venda (PDV)',
+    'dishes.sale_category_placeholder': 'Selecione uma categoria de venda',
+    'dishes.sale_category_hint': 'Categoria para organizar o prato no PDV do garçom (ex: Entradas, Pratos Principais, Bebidas)',
+    'dishes.none': 'Nenhuma',
+    'dishes.new_category': 'Nova categoria',
+    'dishes.new_category_placeholder': 'Nome da nova categoria',
+    'dishes.category_created': 'Categoria criada!',
 
     // Billing / Review
     'billing.review_title': 'Revisão da Conta',
@@ -1146,6 +1153,13 @@ const translations: Record<Language, Record<string, string>> = {
     'dishes.unit_primary': 'Compra',
     'dishes.unit_secondary': 'Consumo',
     'dishes.unit_tertiary': 'Receta',
+    'dishes.sale_category': 'Categoría de Venta (PDV)',
+    'dishes.sale_category_placeholder': 'Seleccione una categoría de venta',
+    'dishes.sale_category_hint': 'Categoría para organizar el plato en el PDV del camarero (ej: Entradas, Platos Principales, Bebidas)',
+    'dishes.none': 'Ninguna',
+    'dishes.new_category': 'Nueva categoría',
+    'dishes.new_category_placeholder': 'Nombre de la nueva categoría',
+    'dishes.category_created': '¡Categoría creada!',
 
     // Billing / Review
     'billing.review_title': 'Revisión de la Cuenta',
@@ -1807,6 +1821,13 @@ const translations: Record<Language, Record<string, string>> = {
     'dishes.unit_primary': 'Purchase',
     'dishes.unit_secondary': 'Consumption',
     'dishes.unit_tertiary': 'Recipe',
+    'dishes.sale_category': 'Sale Category (POS)',
+    'dishes.sale_category_placeholder': 'Select a sale category',
+    'dishes.sale_category_hint': 'Category to organize the dish on the waiter POS (e.g.: Starters, Main Courses, Drinks)',
+    'dishes.none': 'None',
+    'dishes.new_category': 'New category',
+    'dishes.new_category_placeholder': 'New category name',
+    'dishes.category_created': 'Category created!',
 
     // Billing / Review
     'billing.review_title': 'Bill Review',

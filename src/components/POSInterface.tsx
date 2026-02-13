@@ -1335,7 +1335,7 @@ export default function POSInterface({
 
             {/* POS Category with inline creation */}
             <div className="space-y-2">
-              <Label>Categoria de Venda (PDV) *</Label>
+              <Label>{t('dishes.sale_category')} *</Label>
               <Select
                 value={productPosCatId}
                 onValueChange={(value) => {
@@ -1347,10 +1347,10 @@ export default function POSInterface({
                 }}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione uma categoria de venda" />
+                  <SelectValue placeholder={t('dishes.sale_category_placeholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Nenhuma</SelectItem>
+                  <SelectItem value="none">{t('dishes.none')}</SelectItem>
                   {posCategories.map((cat) => (
                     <SelectItem key={cat.id} value={cat.id}>
                       {cat.name} {cat.destination === 'bar' ? '🍸' : '🍳'}
@@ -1358,7 +1358,7 @@ export default function POSInterface({
                   ))}
                   <SelectItem value="__new__" className="text-primary font-medium">
                     <span className="flex items-center gap-1">
-                      <Plus className="h-3 w-3" /> Nova categoria
+                      <Plus className="h-3 w-3" /> {t('dishes.new_category')}
                     </span>
                   </SelectItem>
                 </SelectContent>
@@ -1367,7 +1367,7 @@ export default function POSInterface({
               {creatingPosCategory && (
                 <div className="flex items-center gap-2 mt-2 p-2 border rounded-lg bg-muted/30">
                   <Input
-                    placeholder="Nome da nova categoria"
+                    placeholder={t('dishes.new_category_placeholder')}
                     value={newPosCategoryName}
                     onChange={(e) => setNewPosCategoryName(e.target.value)}
                     onKeyDown={async (e) => {
@@ -1381,7 +1381,7 @@ export default function POSInterface({
                           setProductPosCatId(data.id);
                           setNewPosCategoryName('');
                           setCreatingPosCategory(false);
-                          toast({ title: 'Categoria criada!' });
+                          toast({ title: t('dishes.category_created') });
                         }
                       }
                     }}
@@ -1399,7 +1399,7 @@ export default function POSInterface({
                         setProductPosCatId(data.id);
                         setNewPosCategoryName('');
                         setCreatingPosCategory(false);
-                        toast({ title: 'Categoria criada!' });
+                        toast({ title: t('dishes.category_created') });
                       }
                     }}
                   >
@@ -1417,7 +1417,7 @@ export default function POSInterface({
               )}
 
               <p className="text-xs text-muted-foreground">
-                Categoria para organizar o prato no PDV do garçom (ex: Entradas, Pratos Principais, Bebidas)
+                {t('dishes.sale_category_hint')}
               </p>
             </div>
 
