@@ -178,6 +178,9 @@ const translations: Record<Language, Record<string, string>> = {
     'stock_entry.staff_no_decrease': 'Funcionários não podem diminuir o estoque diretamente. Use a função "Baixa de Estoque".',
     'stock_entry.entry_reason': 'Entrada de estoque',
     'stock_entry.adjustment_reason': 'Ajuste manual',
+    'stock_entry.uncategorized': 'Sem categoria',
+    'inventory.also_create_pos': 'Criar também como categoria de venda (PDV)?',
+    'inventory.category_synced_pos': 'Categoria também criada no PDV!',
 
     'users.title': 'Usuários',
     'users.subtitle': 'Gerencie os usuários da sua operação',
@@ -932,6 +935,9 @@ const translations: Record<Language, Record<string, string>> = {
     'stock_entry.staff_no_decrease': 'Los empleados no pueden disminuir el stock directamente. Use la función "Salida de Stock".',
     'stock_entry.entry_reason': 'Entrada de inventario',
     'stock_entry.adjustment_reason': 'Ajuste manual',
+    'stock_entry.uncategorized': 'Sin categoría',
+    'inventory.also_create_pos': '¿Crear también como categoría de venta (PDV)?',
+    'inventory.category_synced_pos': '¡Categoría también creada en el PDV!',
 
     'users.title': 'Usuarios',
     'users.subtitle': 'Gestione los usuarios de su operación',
@@ -1686,6 +1692,9 @@ const translations: Record<Language, Record<string, string>> = {
     'stock_entry.staff_no_decrease': 'Staff members cannot decrease stock directly. Use the "Stock Withdrawal" function.',
     'stock_entry.entry_reason': 'Stock entry',
     'stock_entry.adjustment_reason': 'Manual adjustment',
+    'stock_entry.uncategorized': 'Uncategorized',
+    'inventory.also_create_pos': 'Also create as a POS sales category?',
+    'inventory.category_synced_pos': 'Category also created in POS!',
 
     'users.title': 'Users',
     'users.subtitle': 'Manage your operation users',

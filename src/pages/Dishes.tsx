@@ -659,6 +659,8 @@ export default function Dishes() {
                             if (!newPosCategoryName.trim()) return;
                             const { data, error } = await supabase.from('pos_categories').insert({ name: newPosCategoryName.trim(), restaurant_id: restaurantId }).select().single();
                             if (!error && data) {
+                              // Auto-sync: also create stock category
+                              await supabase.from('categories').insert({ name: newPosCategoryName.trim(), restaurant_id: restaurantId });
                               setPosCategories(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
                               setDishForm(f => ({ ...f, pos_category_id: data.id }));
                               setNewPosCategoryName('');
@@ -676,6 +678,8 @@ export default function Dishes() {
                           if (!newPosCategoryName.trim()) return;
                           const { data, error } = await supabase.from('pos_categories').insert({ name: newPosCategoryName.trim(), restaurant_id: restaurantId }).select().single();
                           if (!error && data) {
+                            // Auto-sync: also create stock category
+                            await supabase.from('categories').insert({ name: newPosCategoryName.trim(), restaurant_id: restaurantId });
                             setPosCategories(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
                             setDishForm(f => ({ ...f, pos_category_id: data.id }));
                             setNewPosCategoryName('');

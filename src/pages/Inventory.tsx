@@ -113,6 +113,7 @@ export default function Inventory() {
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [itemModalOpen, setItemModalOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [alsoCreateInPos, setAlsoCreateInPos] = useState(false);
   const [newItem, setNewItem] = useState({
     name: '',
     category_id: '',
@@ -229,8 +230,21 @@ export default function Inventory() {
         return;
       }
 
+      // Auto-sync: optionally create in POS too
+      if (alsoCreateInPos) {
+        const { error: posError } = await supabase.from('pos_categories').insert({
+          name: trimmedName,
+          restaurant_id: restaurantId,
+          destination: 'kitchen',
+        });
+        if (!posError) {
+          toast({ title: t('inventory.category_synced_pos') });
+        }
+      }
+
       toast({ title: t('inventory.category_created') });
       setNewCategoryName('');
+      setAlsoCreateInPos(false);
       setCategoryModalOpen(false);
       fetchData();
     } catch (error: any) {
@@ -579,6 +593,18 @@ export default function Inventory() {
                         onChange={(e) => setNewCategoryName(e.target.value)}
                       />
                     </div>
+                    {!editingCategory && (
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="alsoCreateInPos"
+                          checked={alsoCreateInPos}
+                          onCheckedChange={(checked) => setAlsoCreateInPos(checked === true)}
+                        />
+                        <Label htmlFor="alsoCreateInPos" className="text-sm font-normal cursor-pointer">
+                          {t('inventory.also_create_pos')}
+                        </Label>
+                      </div>
+                    )}
                     <Button
                       className="w-full"
                       onClick={editingCategory ? handleUpdateCategory : handleCreateCategory}
