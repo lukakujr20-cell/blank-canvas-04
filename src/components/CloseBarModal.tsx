@@ -20,6 +20,7 @@ import { format } from 'date-fns';
 interface CloseBarModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSessionClosed?: () => void;
 }
 
 interface SaleByWaiter {
@@ -51,7 +52,7 @@ interface ClosingReport {
   consumed_products: ConsumedProduct[];
 }
 
-export function CloseBarModal({ open, onOpenChange }: CloseBarModalProps) {
+export function CloseBarModal({ open, onOpenChange, onSessionClosed }: CloseBarModalProps) {
   const { t } = useLanguage();
   const { formatCurrency } = useCurrency();
   const { user } = useAuth();
@@ -270,6 +271,12 @@ export function CloseBarModal({ open, onOpenChange }: CloseBarModalProps) {
       if (insertError) throw insertError;
 
       setStep('done');
+      
+      // Close the active session if callback provided
+      if (onSessionClosed) {
+        onSessionClosed();
+      }
+
       toast({
         title: t('close_bar.success'),
         description: t('close_bar.success_desc'),
