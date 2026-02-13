@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { setupNewRestaurant } from "../_shared/restaurant-setup.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -21,7 +22,6 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
 
     // Verify the user's token
@@ -35,18 +35,15 @@ Deno.serve(async (req) => {
       );
     }
 
-    const requesterId = requester.id;
-
-    // Check if requester is super_admin via user_roles table
+    // Check if requester is super_admin
     const { data: roleData, error: roleError } = await supabaseAdmin
       .from("user_roles")
       .select("role")
-      .eq("user_id", requesterId)
+      .eq("user_id", requester.id)
       .eq("role", "super_admin")
       .maybeSingle();
 
     if (roleError || !roleData) {
-      console.log("Permission check failed:", { roleData, roleError });
       return new Response(
         JSON.stringify({ error: "permission_denied", message: "Only super_admin can create restaurants" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -54,7 +51,7 @@ Deno.serve(async (req) => {
     }
 
     // Parse request body
-    const { restaurant_name, owner_email, owner_password, owner_name } = await req.json();
+    const { restaurant_name, owner_email, owner_password, owner_name, locale, currency } = await req.json();
 
     if (!restaurant_name || !owner_email || !owner_password || !owner_name) {
       return new Response(
@@ -111,7 +108,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 3. Create the owner's profile with restaurant_id
+    // 3. Create the owner's profile
     const { error: profileError } = await supabaseAdmin
       .from("profiles")
       .insert({
@@ -125,35 +122,23 @@ Deno.serve(async (req) => {
       console.error("Error creating profile:", profileError);
     }
 
-    // 4. Assign 'host' role to the owner
+    // 4. Assign 'host' role
     const { error: assignRoleError } = await supabaseAdmin
       .from("user_roles")
-      .insert({
-        user_id: ownerId,
-        role: "host",
-      });
+      .insert({ user_id: ownerId, role: "host" });
 
     if (assignRoleError) {
       console.error("Error assigning role:", assignRoleError);
     }
 
-    // 5. Create 5 default tables for the new restaurant
-    const defaultTables = Array.from({ length: 5 }, (_, i) => ({
-      table_number: i + 1,
-      capacity: 4,
-      status: "free",
-      restaurant_id: restaurant.id,
-    }));
+    // 5. Setup restaurant defaults (tables, categories, settings)
+    await setupNewRestaurant(supabaseAdmin, restaurant.id, {
+      locale: locale || 'es',
+      currency: currency || 'EUR',
+      restaurantName: restaurant_name,
+    });
 
-    const { error: tablesError } = await supabaseAdmin
-      .from("restaurant_tables")
-      .insert(defaultTables);
-
-    if (tablesError) {
-      console.error("Error creating default tables:", tablesError);
-    }
-
-    console.log(`Restaurant "${restaurant_name}" created successfully with owner ${owner_email} and 5 default tables`);
+    console.log(`Restaurant "${restaurant_name}" created successfully with full setup`);
 
     return new Response(
       JSON.stringify({ 
