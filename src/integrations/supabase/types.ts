@@ -415,6 +415,39 @@ export type Database = {
         }
         Relationships: []
       }
+      restaurant_settings: {
+        Row: {
+          created_at: string
+          currency: string
+          id: string
+          iva_rate: number
+          locale: string
+          restaurant_display_name: string | null
+          restaurant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          id?: string
+          iva_rate?: number
+          locale?: string
+          restaurant_display_name?: string | null
+          restaurant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          id?: string
+          iva_rate?: number
+          locale?: string
+          restaurant_display_name?: string | null
+          restaurant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       restaurant_tables: {
         Row: {
           capacity: number
