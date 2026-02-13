@@ -73,10 +73,10 @@ export default function EditUserModal({
   // Determine which roles current user can assign
   const getAvailableRoles = (): AppRole[] => {
     if (currentUserRole === 'host') {
-      return ['host', 'admin', 'staff'];
+      return ['host', 'admin', 'staff', 'cozinha'];
     }
     if (currentUserRole === 'admin') {
-      return ['staff']; // Admin can only manage staff
+      return ['staff', 'cozinha'];
     }
     return [];
   };
@@ -212,7 +212,7 @@ export default function EditUserModal({
                 onValueChange={(value: AppRole) =>
                   setFormData({ ...formData, role: value })
                 }
-                disabled={!availableRoles.includes(user?.role || 'staff')}
+                disabled={availableRoles.length === 0}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -238,6 +238,12 @@ export default function EditUserModal({
                     <div className="flex items-center gap-2">
                       <User className="h-4 w-4" />
                       {t('users.staff_desc')}
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="cozinha">
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      {t('users.cozinha_desc')}
                     </div>
                   </SelectItem>
                 </SelectContent>
