@@ -74,6 +74,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
+import BillReviewModal from '@/components/BillReviewModal';
+import { CreditCard } from 'lucide-react';
 
 interface Dish {
   id: string;
@@ -232,6 +234,11 @@ export default function POSInterface({
   // Notes editing state
   const [editingNotesId, setEditingNotesId] = useState<string | null>(null);
   const [editingNotesValue, setEditingNotesValue] = useState('');
+
+  // Bill review state
+  const [billReviewOpen, setBillReviewOpen] = useState(false);
+  const [orderForBill, setOrderForBill] = useState<any>(null);
+  const [orderItemsForBill, setOrderItemsForBill] = useState<any[]>([]);
 
   // Category management state
   const [newCatDialogOpen, setNewCatDialogOpen] = useState(false);
@@ -708,6 +715,52 @@ export default function POSInterface({
     }
   };
 
+  // ── Open Bill Review ──
+  const openBillReview = async () => {
+    try {
+      const [orderRes, itemsRes] = await Promise.all([
+        supabase.from('orders').select('*').eq('id', orderId).single(),
+        supabase.from('order_items').select('*').eq('order_id', orderId).order('sent_at', { ascending: true }),
+      ]);
+      if (orderRes.error) throw orderRes.error;
+      if (itemsRes.error) throw itemsRes.error;
+      setOrderForBill(orderRes.data);
+      setOrderItemsForBill(itemsRes.data || []);
+      setBillReviewOpen(true);
+    } catch (error) {
+      console.error('Error loading bill:', error);
+      toast({ title: t('common.error'), variant: 'destructive' });
+    }
+  };
+
+  const closeOrder = async (paymentMethod?: string) => {
+    try {
+      await supabase
+        .from('orders')
+        .update({
+          status: 'closed',
+          closed_at: new Date().toISOString(),
+          payment_method: paymentMethod || null,
+        })
+        .eq('id', orderId);
+
+      if (tableId) {
+        await supabase
+          .from('restaurant_tables')
+          .update({ status: 'free', current_order_id: null })
+          .eq('id', tableId);
+      }
+
+      toast({ title: t('dining.order_closed') });
+      setBillReviewOpen(false);
+      onOrderUpdated();
+      onClose();
+    } catch (error) {
+      console.error('Error closing order:', error);
+      toast({ title: t('common.error'), description: t('dining.close_error'), variant: 'destructive' });
+    }
+  };
+
   // ── Cart Content (shared between sidebar and drawer) ──
   const cartContent = (
     <>
@@ -843,6 +896,17 @@ export default function POSInterface({
           <Send className="mr-2 h-5 w-5" />
           {sending ? t('pos.sending') : t('pos.send_to_kitchen')}
         </Button>
+        {liveTotal > 0 && cart.length === 0 && (
+          <Button
+            variant="outline"
+            className="w-full h-12 text-base font-bold rounded-xl border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+            size="lg"
+            onClick={openBillReview}
+          >
+            <CreditCard className="mr-2 h-5 w-5" />
+            {t('billing.finalize_sale')}
+          </Button>
+        )}
       </div>
     </>
   );
@@ -1572,6 +1636,21 @@ export default function POSInterface({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Bill Review Modal */}
+      <BillReviewModal
+        open={billReviewOpen}
+        onOpenChange={setBillReviewOpen}
+        order={orderForBill}
+        orderItems={orderItemsForBill}
+        tableNumber={null}
+        waiterName={''}
+        onAddItem={() => {
+          setBillReviewOpen(false);
+        }}
+        onClose={closeOrder}
+        onPrint={() => window.print()}
+      />
     </>
   );
 }
