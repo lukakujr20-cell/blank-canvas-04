@@ -557,15 +557,21 @@ export default function DiningRoom() {
     }
   };
 
-  const closeOrder = async () => {
+  const closeOrder = async (paymentMethod?: string) => {
     if (!currentOrder) return;
 
     try {
+      // Update order with closed status and payment method
       await supabase
         .from('orders')
-        .update({ status: 'closed', closed_at: new Date().toISOString() })
+        .update({ 
+          status: 'closed', 
+          closed_at: new Date().toISOString(),
+          payment_method: paymentMethod || null,
+        })
         .eq('id', currentOrder.id);
 
+      // Release the table via Realtime
       if (selectedTable) {
         await supabase
           .from('restaurant_tables')
@@ -576,6 +582,7 @@ export default function DiningRoom() {
       toast({ title: t('dining.order_closed') });
       setCloseOrderConfirmOpen(false);
       setOrderModalOpen(false);
+      setBillReviewOpen(false);
       setCurrentOrder(null);
       setCurrentOrderItems([]);
       fetchData();
@@ -1107,7 +1114,7 @@ export default function DiningRoom() {
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-              <AlertDialogAction onClick={closeOrder}>
+              <AlertDialogAction onClick={() => closeOrder()}>
                 {t('dining.confirm_close')}
               </AlertDialogAction>
             </AlertDialogFooter>

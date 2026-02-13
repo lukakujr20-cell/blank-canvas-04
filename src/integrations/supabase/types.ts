@@ -314,6 +314,7 @@ export type Database = {
           guest_count: number | null
           id: string
           opened_at: string | null
+          payment_method: string | null
           restaurant_id: string | null
           session_id: string | null
           status: string
@@ -329,6 +330,7 @@ export type Database = {
           guest_count?: number | null
           id?: string
           opened_at?: string | null
+          payment_method?: string | null
           restaurant_id?: string | null
           session_id?: string | null
           status?: string
@@ -344,6 +346,7 @@ export type Database = {
           guest_count?: number | null
           id?: string
           opened_at?: string | null
+          payment_method?: string | null
           restaurant_id?: string | null
           session_id?: string | null
           status?: string
