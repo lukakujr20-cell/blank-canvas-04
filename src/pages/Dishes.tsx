@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
+import { formatQuantity } from '@/lib/formatNumber';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import SaleDestinationModal from '@/components/SaleDestinationModal';
 import { Button } from '@/components/ui/button';
@@ -858,17 +859,17 @@ export default function Dishes() {
                     <AlertTriangle className="h-5 w-5" />
                     <span className="font-medium">{t('dishes.insufficient_stock')}</span>
                   </div>
-                  <ul className="space-y-1 text-sm">
-                    {stockIssues.map((issue, index) => (
-                      <li key={index} className="text-destructive">
-                        {t('dishes.stock_issue_item')
-                          .replace('{name}', issue.itemName)
-                          .replace('{needed}', issue.needed.toString())
-                          .replace('{available}', issue.available.toString())
-                          .replace('{unit}', issue.unit)}
-                      </li>
-                    ))}
-                  </ul>
+                   <ul className="space-y-1 text-sm">
+                     {stockIssues.map((issue, index) => (
+                       <li key={index} className="text-destructive">
+                         {t('dishes.stock_issue_item')
+                           .replace('{name}', issue.itemName)
+                           .replace('{needed}', formatQuantity(issue.needed))
+                           .replace('{available}', formatQuantity(issue.available))
+                           .replace('{unit}', issue.unit)}
+                       </li>
+                     ))}
+                   </ul>
                 </div>
               )}
 
@@ -885,23 +886,23 @@ export default function Dishes() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {getDishIngredients(selectedDishForSale.id).map((ing) => {
-                        const item = getItemById(ing.item_id);
-                        if (!item) return null;
-                        const needed = ing.quantity_per_sale * saleQuantity;
-                        const isInsufficient = item.current_stock < needed;
-                        return (
-                          <TableRow key={ing.id}>
-                            <TableCell>{item.name}</TableCell>
-                            <TableCell className={`text-right ${isInsufficient ? 'text-destructive font-medium' : ''}`}>
-                              {needed} {item.unit}
-                            </TableCell>
-                            <TableCell className="text-right text-muted-foreground">
-                              {item.current_stock} {item.unit}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
+                       {getDishIngredients(selectedDishForSale.id).map((ing) => {
+                         const item = getItemById(ing.item_id);
+                         if (!item) return null;
+                         const needed = ing.quantity_per_sale * saleQuantity;
+                         const isInsufficient = item.current_stock < needed;
+                         return (
+                           <TableRow key={ing.id}>
+                             <TableCell>{item.name}</TableCell>
+                             <TableCell className={`text-right ${isInsufficient ? 'text-destructive font-medium' : ''}`}>
+                               {formatQuantity(needed)} {item.unit}
+                             </TableCell>
+                             <TableCell className="text-right text-muted-foreground">
+                               {formatQuantity(item.current_stock)} {item.unit}
+                             </TableCell>
+                           </TableRow>
+                         );
+                       })}
                     </TableBody>
                   </Table>
                 </div>
