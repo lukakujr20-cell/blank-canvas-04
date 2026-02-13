@@ -1,5 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { usePermissions, PermissionKey } from '@/hooks/usePermissions';
 import { useLanguage, Language } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import {
@@ -49,32 +50,37 @@ const navItems = [
     titleKey: 'nav.kitchen',
     href: '/kitchen',
     icon: ChefHat,
-    roles: ['cozinha'],
+    roles: ['super_admin', 'host', 'admin', 'staff', 'cozinha'],
+    permission: 'kitchen' as PermissionKey,
   },
   {
     titleKey: 'nav.inventory',
     href: '/inventory',
     icon: Package,
-    roles: ['super_admin', 'host', 'admin', 'cozinha'],
+    roles: ['super_admin', 'host', 'admin', 'staff', 'cozinha'],
+    permission: 'inventory_management' as PermissionKey,
   },
   {
     titleKey: 'nav.dashboard',
     href: '/dashboard',
     icon: LayoutDashboard,
-    roles: ['super_admin', 'host', 'admin', 'staff'],
+    roles: ['super_admin', 'host', 'admin', 'staff', 'cozinha'],
+    permission: 'dashboard' as PermissionKey,
   },
   {
     titleKey: 'nav.dining_room',
     href: '/dining-room',
     icon: Utensils,
-    roles: ['super_admin', 'host', 'admin', 'staff'],
+    roles: ['super_admin', 'host', 'admin', 'staff', 'cozinha'],
+    permission: 'dining_room' as PermissionKey,
   },
   
   {
     titleKey: 'nav.stock_entry',
     href: '/stock-entry',
     icon: ClipboardList,
-    roles: ['super_admin', 'host', 'admin', 'staff'],
+    roles: ['super_admin', 'host', 'admin', 'staff', 'cozinha'],
+    permission: 'stock_entry' as PermissionKey,
   },
   {
     titleKey: 'nav.shopping_list',
@@ -104,7 +110,7 @@ const navItems = [
     titleKey: 'nav.settings',
     href: '/settings',
     icon: Settings,
-    roles: ['super_admin', 'host', 'admin', 'staff'],
+    roles: ['super_admin', 'host', 'admin', 'staff', 'cozinha'],
   },
 ];
 
@@ -116,6 +122,7 @@ const languages: { code: Language; name: string; flag: string }[] = [
 
 export default function Sidebar() {
   const { user, role, signOut } = useAuth();
+  const { hasPermission } = usePermissions();
   const { t, language, setLanguage } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
@@ -124,9 +131,12 @@ export default function Sidebar() {
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const isMobile = useIsMobile();
 
-  const filteredNavItems = navItems.filter((item) =>
-    item.roles.includes(role || 'staff')
-  );
+  const filteredNavItems = navItems.filter((item) => {
+    if (!item.roles.includes(role || 'staff')) return false;
+    // Check granular permission if defined
+    if (item.permission && !hasPermission(item.permission)) return false;
+    return true;
+  });
 
   const handleMouseEnter = () => {
     if (!isMobile) {

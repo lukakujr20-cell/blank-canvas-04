@@ -623,6 +623,22 @@ const translations: Record<Language, Record<string, string>> = {
     'export.sql_copied_desc': 'copiado para a área de transferência',
     'export.sql_all_copied_desc': 'SQL de todas as tabelas copiado para a área de transferência',
     'export.sql_copy_error': 'Erro ao copiar SQL',
+
+    // Permissions
+    'permissions.title': 'Permissões de Acesso',
+    'permissions.description': 'Configure as permissões de acesso para {name}',
+    'permissions.saved': 'Permissões salvas!',
+    'permissions.save_error': 'Erro ao salvar permissões',
+    'permissions.dining_room': 'Salão (PDV)',
+    'permissions.dining_room_desc': 'Acesso às mesas e pedidos',
+    'permissions.kitchen': 'Cozinha (KDS)',
+    'permissions.kitchen_desc': 'Acesso ao Painel de Preparo',
+    'permissions.stock_entry': 'Preenchimento de Estoque',
+    'permissions.stock_entry_desc': 'Acesso para ajustar quantidades',
+    'permissions.inventory_management': 'Gestão de Inventário',
+    'permissions.inventory_management_desc': 'Criar/editar categorias e itens',
+    'permissions.dashboard': 'Financeiro / Dashboard',
+    'permissions.dashboard_desc': 'Acesso aos relatórios de vendas',
   },
   'es': {
     // Auth
@@ -1237,6 +1253,22 @@ const translations: Record<Language, Record<string, string>> = {
     'export.sql_copied_desc': 'copiado al portapapeles',
     'export.sql_all_copied_desc': 'SQL de todas las tablas copiado al portapapeles',
     'export.sql_copy_error': 'Error al copiar SQL',
+
+    // Permissions
+    'permissions.title': 'Permisos de Acceso',
+    'permissions.description': 'Configure los permisos de acceso para {name}',
+    'permissions.saved': '¡Permisos guardados!',
+    'permissions.save_error': 'Error al guardar permisos',
+    'permissions.dining_room': 'Salón (PDV)',
+    'permissions.dining_room_desc': 'Acceso a mesas y pedidos',
+    'permissions.kitchen': 'Cocina (KDS)',
+    'permissions.kitchen_desc': 'Acceso al Panel de Preparación',
+    'permissions.stock_entry': 'Llenado de Inventario',
+    'permissions.stock_entry_desc': 'Acceso para ajustar cantidades',
+    'permissions.inventory_management': 'Gestión de Inventario',
+    'permissions.inventory_management_desc': 'Crear/editar categorías y artículos',
+    'permissions.dashboard': 'Financiero / Dashboard',
+    'permissions.dashboard_desc': 'Acceso a los informes de ventas',
   },
   'en': {
     // Auth
@@ -1851,6 +1883,22 @@ const translations: Record<Language, Record<string, string>> = {
     'export.sql_copied_desc': 'copied to clipboard',
     'export.sql_all_copied_desc': 'All tables SQL copied to clipboard',
     'export.sql_copy_error': 'Error copying SQL',
+
+    // Permissions
+    'permissions.title': 'Access Permissions',
+    'permissions.description': 'Configure access permissions for {name}',
+    'permissions.saved': 'Permissions saved!',
+    'permissions.save_error': 'Error saving permissions',
+    'permissions.dining_room': 'Dining Room (POS)',
+    'permissions.dining_room_desc': 'Access to tables and orders',
+    'permissions.kitchen': 'Kitchen (KDS)',
+    'permissions.kitchen_desc': 'Access to the Preparation Panel',
+    'permissions.stock_entry': 'Stock Entry',
+    'permissions.stock_entry_desc': 'Access to adjust quantities',
+    'permissions.inventory_management': 'Inventory Management',
+    'permissions.inventory_management_desc': 'Create/edit categories and items',
+    'permissions.dashboard': 'Financial / Dashboard',
+    'permissions.dashboard_desc': 'Access to sales reports',
   },
 };
 

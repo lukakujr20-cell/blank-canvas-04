@@ -32,7 +32,8 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { UserPlus, Users as UsersIcon, Trash2, Shield, User, Crown, Pencil, ChefHat } from 'lucide-react';
+import { UserPlus, Users as UsersIcon, Trash2, Shield, User, Crown, Pencil, ChefHat, Settings2 } from 'lucide-react';
+import UserPermissionsModal from '@/components/UserPermissionsModal';
 import { format, parseISO } from 'date-fns';
 import { ptBR, es, enUS } from 'date-fns/locale';
 
@@ -57,6 +58,8 @@ export default function Users() {
   const [creating, setCreating] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [userToEdit, setUserToEdit] = useState<UserWithRole | null>(null);
+  const [permissionsModalOpen, setPermissionsModalOpen] = useState(false);
+  const [userForPermissions, setUserForPermissions] = useState<UserWithRole | null>(null);
 
   const [newUser, setNewUser] = useState({
     email: '',
@@ -511,6 +514,19 @@ export default function Users() {
                             <div className="flex items-center gap-1">
                               {canManage && (
                                 <>
+                                  {(currentUserRole === 'host' || currentUserRole === 'super_admin') && (u.role === 'staff' || u.role === 'cozinha') && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      title={t('permissions.title')}
+                                      onClick={() => {
+                                        setUserForPermissions(u);
+                                        setPermissionsModalOpen(true);
+                                      }}
+                                    >
+                                      <Settings2 className="h-4 w-4" />
+                                    </Button>
+                                  )}
                                   <Button
                                     variant="ghost"
                                     size="icon"
@@ -548,6 +564,17 @@ export default function Users() {
         currentUserRole={currentUserRole}
         onSuccess={fetchUsers}
       />
+
+      {/* Permissions Modal */}
+      {userForPermissions && (
+        <UserPermissionsModal
+          open={permissionsModalOpen}
+          onOpenChange={setPermissionsModalOpen}
+          userId={userForPermissions.id}
+          userName={userForPermissions.full_name}
+          userRole={userForPermissions.role}
+        />
+      )}
     </DashboardLayout>
   );
 }
