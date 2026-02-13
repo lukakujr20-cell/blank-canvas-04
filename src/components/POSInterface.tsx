@@ -95,6 +95,8 @@ interface Item {
   category_id: string | null;
   pos_category_id?: string | null;
   recipe_units_per_consumption?: number | null;
+  recipe_unit?: string | null;
+  sub_unit?: string | null;
 }
 
 interface PosCategory {
@@ -249,6 +251,8 @@ export default function POSInterface({
   const [productPosCatId, setProductPosCatId] = useState<string>('none');
   const [productDirectSale, setProductDirectSale] = useState(false);
   const [productNotes, setProductNotes] = useState('');
+  const [productIngredients, setProductIngredients] = useState<{ item_id: string; quantity: number }[]>([]);
+  const [ingredientSearch, setIngredientSearch] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -375,16 +379,28 @@ export default function POSInterface({
     setProductPosCatId(selectedCategory || 'none');
     setProductDirectSale(false);
     setProductNotes('');
+    setProductIngredients([]);
+    setIngredientSearch('');
     setProductDialogOpen(true);
   };
 
-  const openEditProduct = (product: { id: string; name: string; price: number; type: 'dish' | 'item'; pos_category_id?: string | null }) => {
+  const openEditProduct = async (product: { id: string; name: string; price: number; type: 'dish' | 'item'; pos_category_id?: string | null }) => {
     setEditingProduct({ id: product.id, type: product.type });
     setProductName(product.name);
     setProductPrice(product.price.toFixed(2));
     setProductPosCatId(product.pos_category_id || 'none');
     setProductDirectSale(product.type === 'item');
     setProductNotes('');
+    setIngredientSearch('');
+
+    // Load existing technical sheets for this dish
+    if (product.type === 'dish') {
+      const existing = technicalSheets.filter(ts => ts.dish_id === product.id);
+      setProductIngredients(existing.map(ts => ({ item_id: ts.item_id, quantity: ts.quantity_per_sale })));
+    } else {
+      setProductIngredients([]);
+    }
+
     setProductDialogOpen(true);
   };
 
@@ -396,12 +412,15 @@ export default function POSInterface({
     const restaurantId = await getRestaurantId();
 
     try {
+      let dishId: string | null = null;
+
       if (editingProduct) {
         if (editingProduct.type === 'dish') {
           const { error } = await supabase.from('dishes').update({
             name: trimmedName, price, pos_category_id: posCatId,
           }).eq('id', editingProduct.id);
           if (error) throw error;
+          dishId = editingProduct.id;
         } else {
           const { error } = await supabase.from('items').update({
             name: trimmedName, price, pos_category_id: posCatId,
@@ -417,13 +436,33 @@ export default function POSInterface({
           });
           if (error) throw error;
         } else {
-          const { error } = await supabase.from('dishes').insert({
+          const { data: newDish, error } = await supabase.from('dishes').insert({
             name: trimmedName, price, pos_category_id: posCatId,
             restaurant_id: restaurantId,
-          });
+          }).select('id').single();
           if (error) throw error;
+          dishId = newDish.id;
         }
       }
+
+      // Save technical sheets for dishes (non-direct-sale)
+      if (dishId && !productDirectSale && productIngredients.length > 0) {
+        // Delete existing sheets for this dish
+        await supabase.from('technical_sheets').delete().eq('dish_id', dishId);
+        // Insert new ones
+        const sheetsToInsert = productIngredients
+          .filter(ing => ing.item_id && ing.quantity > 0)
+          .map(ing => ({
+            dish_id: dishId!,
+            item_id: ing.item_id,
+            quantity_per_sale: ing.quantity,
+          }));
+        if (sheetsToInsert.length > 0) {
+          const { error: sheetError } = await supabase.from('technical_sheets').insert(sheetsToInsert);
+          if (sheetError) throw sheetError;
+        }
+      }
+
       toast({ title: t('pos.product_saved') });
       setProductDialogOpen(false);
       await fetchData();
@@ -1206,65 +1245,172 @@ export default function POSInterface({
 
       {/* Add/Edit Product Dialog */}
       <Dialog open={productDialogOpen} onOpenChange={setProductDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>{editingProduct ? t('pos.edit_product') : t('pos.add_product')}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label>{t('pos.product_name')}</Label>
-              <Input
-                placeholder="Ex: Coca-Cola, Pizza Margherita..."
-                value={productName}
-                onChange={(e) => setProductName(e.target.value)}
-                autoFocus
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>{t('pos.product_price')}</Label>
-              <div className="relative">
+          <ScrollArea className="flex-1 pr-2">
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label>{t('pos.product_name')}</Label>
                 <Input
-                  placeholder="0,00"
-                  value={productPrice}
-                  onChange={(e) => {
-                    const formatted = formatPriceInput(e.target.value);
-                    setProductPrice(formatted);
-                  }}
-                  inputMode="numeric"
-                  className="pl-8"
-                />
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium">$</span>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>{t('pos.product_category')}</Label>
-              <Select value={productPosCatId} onValueChange={setProductPosCatId}>
-                <SelectTrigger>
-                  <SelectValue placeholder={t('pos.select_category')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">{t('pos.no_category')}</SelectItem>
-                  {posCategories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.name} {cat.destination === 'bar' ? '🍸' : '🍳'}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {!editingProduct && (
-              <div className="flex items-center justify-between rounded-lg border p-3">
-                <Label htmlFor="direct-sale-switch" className="cursor-pointer text-sm">
-                  {t('pos.product_direct_sale')}
-                </Label>
-                <Switch
-                  id="direct-sale-switch"
-                  checked={productDirectSale}
-                  onCheckedChange={setProductDirectSale}
+                  placeholder="Ex: Coca-Cola, Pizza Margherita..."
+                  value={productName}
+                  onChange={(e) => setProductName(e.target.value)}
+                  autoFocus
                 />
               </div>
-            )}
-          </div>
+              <div className="space-y-2">
+                <Label>{t('pos.product_price')}</Label>
+                <div className="relative">
+                  <Input
+                    placeholder="0,00"
+                    value={productPrice}
+                    onChange={(e) => {
+                      const formatted = formatPriceInput(e.target.value);
+                      setProductPrice(formatted);
+                    }}
+                    inputMode="numeric"
+                    className="pl-8"
+                  />
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium">$</span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>{t('pos.product_category')}</Label>
+                <Select value={productPosCatId} onValueChange={setProductPosCatId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t('pos.select_category')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{t('pos.no_category')}</SelectItem>
+                    {posCategories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.name} {cat.destination === 'bar' ? '🍸' : '🍳'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Direct Sale Switch */}
+              {!editingProduct && (
+                <div className="flex items-center justify-between rounded-lg border p-3">
+                  <Label htmlFor="direct-sale-switch" className="cursor-pointer text-sm">
+                    {t('pos.product_direct_sale')}
+                  </Label>
+                  <Switch
+                    id="direct-sale-switch"
+                    checked={productDirectSale}
+                    onCheckedChange={(checked) => {
+                      setProductDirectSale(checked);
+                      if (checked) setProductIngredients([]);
+                    }}
+                  />
+                </div>
+              )}
+
+              {/* Technical Sheet / Ingredients Section */}
+              {!productDirectSale && (
+                <div className="space-y-3 rounded-lg border p-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-semibold">📋 Ingredientes / Composição</Label>
+                    <Badge variant="outline" className="text-[10px]">Ficha Técnica</Badge>
+                  </div>
+
+                  {/* Existing ingredients list */}
+                  {productIngredients.length > 0 && (
+                    <div className="space-y-2">
+                      {productIngredients.map((ing, index) => {
+                        const stockItem = items.find(i => i.id === ing.item_id);
+                        const recipeUnit = stockItem?.recipe_unit || stockItem?.sub_unit || stockItem?.unit || 'un';
+                        return (
+                          <div key={index} className="flex items-center gap-2 bg-muted/50 rounded-md p-2">
+                            <div className="flex-1 text-sm font-medium truncate">
+                              {stockItem?.name || 'Item não encontrado'}
+                            </div>
+                            <Input
+                              type="number"
+                              min="0.01"
+                              step="0.01"
+                              value={ing.quantity}
+                              onChange={(e) => {
+                                const val = parseFloat(e.target.value) || 0;
+                                setProductIngredients(prev =>
+                                  prev.map((item, i) => i === index ? { ...item, quantity: val } : item)
+                                );
+                              }}
+                              className="w-20 h-8 text-sm text-center"
+                            />
+                            <span className="text-xs text-muted-foreground w-12 text-center">{recipeUnit}</span>
+                            <button
+                              type="button"
+                              onClick={() => setProductIngredients(prev => prev.filter((_, i) => i !== index))}
+                              className="text-destructive hover:text-destructive/80 p-1"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Add ingredient search */}
+                  <div className="space-y-1">
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                      <Input
+                        placeholder="Buscar item no estoque..."
+                        value={ingredientSearch}
+                        onChange={(e) => setIngredientSearch(e.target.value)}
+                        className="pl-8 h-9 text-sm"
+                      />
+                    </div>
+                    {ingredientSearch.trim().length > 0 && (
+                      <div className="border rounded-md max-h-32 overflow-y-auto">
+                        {items
+                          .filter(item =>
+                            item.name.toLowerCase().includes(ingredientSearch.toLowerCase()) &&
+                            !productIngredients.some(ing => ing.item_id === item.id)
+                          )
+                          .slice(0, 8)
+                          .map(item => {
+                            const recipeUnit = item.recipe_unit || item.sub_unit || item.unit || 'un';
+                            return (
+                              <button
+                                key={item.id}
+                                type="button"
+                                className="w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-center justify-between transition-colors"
+                                onClick={() => {
+                                  setProductIngredients(prev => [...prev, { item_id: item.id, quantity: 1 }]);
+                                  setIngredientSearch('');
+                                }}
+                              >
+                                <span className="truncate">{item.name}</span>
+                                <span className="text-xs text-muted-foreground ml-2 shrink-0">{recipeUnit}</span>
+                              </button>
+                            );
+                          })}
+                        {items.filter(item =>
+                          item.name.toLowerCase().includes(ingredientSearch.toLowerCase()) &&
+                          !productIngredients.some(ing => ing.item_id === item.id)
+                        ).length === 0 && (
+                          <p className="px-3 py-2 text-sm text-muted-foreground">Nenhum item encontrado</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {productIngredients.length === 0 && (
+                    <p className="text-xs text-muted-foreground text-center py-1">
+                      Busque e adicione ingredientes do estoque para compor a ficha técnica.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          </ScrollArea>
           <DialogFooter>
             <Button variant="outline" onClick={() => setProductDialogOpen(false)}>
               {t('common.cancel')}
