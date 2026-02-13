@@ -315,6 +315,7 @@ export type Database = {
           id: string
           opened_at: string | null
           restaurant_id: string | null
+          session_id: string | null
           status: string
           table_id: string | null
           total: number | null
@@ -329,6 +330,7 @@ export type Database = {
           id?: string
           opened_at?: string | null
           restaurant_id?: string | null
+          session_id?: string | null
           status?: string
           table_id?: string | null
           total?: number | null
@@ -343,12 +345,20 @@ export type Database = {
           id?: string
           opened_at?: string | null
           restaurant_id?: string | null
+          session_id?: string | null
           status?: string
           table_id?: string | null
           total?: number | null
           waiter_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "orders_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_sessions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "orders_table_id_fkey"
             columns: ["table_id"]
@@ -412,6 +422,39 @@ export type Database = {
           instagram_handle?: string | null
           restaurant_id?: string | null
           whatsapp?: string | null
+        }
+        Relationships: []
+      }
+      restaurant_sessions: {
+        Row: {
+          closed_by: string | null
+          created_at: string
+          end_time: string | null
+          id: string
+          opened_by: string
+          restaurant_id: string
+          start_time: string
+          status: string
+        }
+        Insert: {
+          closed_by?: string | null
+          created_at?: string
+          end_time?: string | null
+          id?: string
+          opened_by: string
+          restaurant_id: string
+          start_time?: string
+          status?: string
+        }
+        Update: {
+          closed_by?: string | null
+          created_at?: string
+          end_time?: string | null
+          id?: string
+          opened_by?: string
+          restaurant_id?: string
+          start_time?: string
+          status?: string
         }
         Relationships: []
       }

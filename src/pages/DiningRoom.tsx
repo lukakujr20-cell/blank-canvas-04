@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useSession } from '@/hooks/useSession';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import BillReviewModal from '@/components/BillReviewModal';
@@ -126,6 +127,7 @@ export default function DiningRoom() {
   const { formatCurrency } = useCurrency();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { currentSession } = useSession();
   
   const [tables, setTables] = useState<RestaurantTable[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -305,6 +307,7 @@ export default function DiningRoom() {
               status: 'open',
               guest_count: guestCount,
               restaurant_id: profile?.restaurant_id,
+              session_id: currentSession?.id || null,
             })
             .select()
             .single();
@@ -379,6 +382,7 @@ export default function DiningRoom() {
           guest_count: 1,
           customer_name: counterCustomerName || `Balcão #${Date.now().toString().slice(-4)}`,
           restaurant_id: profile?.restaurant_id,
+          session_id: currentSession?.id || null,
         })
         .select()
         .single();

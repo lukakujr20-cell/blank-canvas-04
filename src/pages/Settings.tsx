@@ -26,10 +26,13 @@ import { useLanguage, Language } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useCurrency, Currency, currencies } from '@/contexts/CurrencyContext';
 import { useAuth } from '@/hooks/useAuth';
-import { Globe, Palette, LogOut, Settings as SettingsIcon, Truck, Coins, Store, FileText } from 'lucide-react';
+import { Globe, Palette, LogOut, Settings as SettingsIcon, Truck, Coins, Store, FileText, Clock } from 'lucide-react';
 import SupplierManagement from '@/components/SupplierManagement';
 import { CloseBarModal } from '@/components/CloseBarModal';
 import { ClosingHistoryModal } from '@/components/ClosingHistoryModal';
+import { useSession } from '@/hooks/useSession';
+import { Badge } from '@/components/ui/badge';
+import { format } from 'date-fns';
 
 const languages: { code: Language; name: string; flag: string }[] = [
   { code: 'pt-BR', name: 'Português (Brasil)', flag: '🇧🇷' },
@@ -46,6 +49,7 @@ export default function Settings() {
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [closeBarOpen, setCloseBarOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const { currentSession, openSession, closeSession } = useSession();
 
   const handleLogout = async () => {
     await signOut();
@@ -238,28 +242,48 @@ export default function Settings() {
           {isAdmin && (
             <TabsContent value="operations" className="space-y-6">
               <div className="grid gap-6 md:grid-cols-2">
-                {/* Close Bar Card */}
-                <Card className="border-destructive/50">
+                {/* Session / Shift Card */}
+                <Card className={currentSession ? 'border-green-500/50' : ''}>
                   <CardHeader>
                     <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-destructive/10">
-                        <Store className="h-5 w-5 text-destructive" />
+                      <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${currentSession ? 'bg-green-500/10' : 'bg-muted'}`}>
+                        <Clock className={`h-5 w-5 ${currentSession ? 'text-green-500' : 'text-muted-foreground'}`} />
                       </div>
-                      <div>
-                        <CardTitle className="text-lg">{t('close_bar.title')}</CardTitle>
-                        <CardDescription>{t('close_bar.description')}</CardDescription>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <CardTitle className="text-lg">{t('session.title')}</CardTitle>
+                          <Badge variant={currentSession ? 'default' : 'secondary'}>
+                            {currentSession ? t('session.open') : t('session.closed')}
+                          </Badge>
+                        </div>
+                        <CardDescription>{t('session.description')}</CardDescription>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <Button 
-                      variant="destructive" 
-                      className="w-full"
-                      onClick={() => setCloseBarOpen(true)}
-                    >
-                      <Store className="mr-2 h-4 w-4" />
-                      {t('close_bar.button')}
-                    </Button>
+                    {currentSession ? (
+                      <div className="space-y-3">
+                        <p className="text-sm text-muted-foreground">
+                          {t('session.opened_at')}: <span className="font-medium text-foreground">{format(new Date(currentSession.start_time), 'dd/MM/yyyy HH:mm')}</span>
+                        </p>
+                        <Button 
+                          variant="destructive" 
+                          className="w-full"
+                          onClick={() => setCloseBarOpen(true)}
+                        >
+                          <Store className="mr-2 h-4 w-4" />
+                          {t('session.close_shift')}
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button 
+                        className="w-full"
+                        onClick={openSession}
+                      >
+                        <Clock className="mr-2 h-4 w-4" />
+                        {t('session.open_new')}
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -295,7 +319,7 @@ export default function Settings() {
         </Tabs>
       </div>
 
-      <CloseBarModal open={closeBarOpen} onOpenChange={setCloseBarOpen} />
+      <CloseBarModal open={closeBarOpen} onOpenChange={setCloseBarOpen} onSessionClosed={closeSession} />
       <ClosingHistoryModal open={historyOpen} onOpenChange={setHistoryOpen} />
     </DashboardLayout>
   );

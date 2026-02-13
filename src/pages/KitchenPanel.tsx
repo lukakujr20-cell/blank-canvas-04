@@ -12,6 +12,8 @@ import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR, es, enUS } from 'date-fns/locale';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import { FinishedOrdersSection } from '@/components/FinishedOrdersSection';
+import { useSession } from '@/hooks/useSession';
 
 interface OrderItem {
   id: string;
@@ -53,6 +55,7 @@ export default function KitchenPanel() {
   const [kitchenOrders, setKitchenOrders] = useState<KitchenOrder[]>([]);
   const [restaurantName, setRestaurantName] = useState('');
   const [userName, setUserName] = useState('');
+  const { currentSession } = useSession();
 
   // Block staff from accessing kitchen panel
   useEffect(() => {
@@ -366,6 +369,9 @@ export default function KitchenPanel() {
             ))}
           </div>
         )}
+
+        {/* Finished Orders Section */}
+        <FinishedOrdersSection sessionStartTime={currentSession?.start_time} />
       </div>
     </DashboardLayout>
   );

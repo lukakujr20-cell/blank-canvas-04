@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/contexts/LanguageContext';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import ActiveOrdersSection from '@/components/ActiveOrdersSection';
-import FinishedOrdersSection from '@/components/FinishedOrdersSection';
+import { FinishedOrdersSection } from '@/components/FinishedOrdersSection';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Package, AlertTriangle, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { differenceInDays, parseISO } from 'date-fns';
