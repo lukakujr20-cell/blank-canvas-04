@@ -1475,12 +1475,12 @@ export default function POSInterface({
                       // Build unit options for this item (3 levels)
                       const unitOptions: { value: string; label: string }[] = [];
                       if (stockItem) {
-                        unitOptions.push({ value: stockItem.unit, label: `${stockItem.unit} (compra)` });
+                        unitOptions.push({ value: stockItem.unit, label: `${stockItem.unit} (${t('dishes.unit_primary')})` });
                         if (stockItem.sub_unit) {
-                          unitOptions.push({ value: stockItem.sub_unit, label: `${stockItem.sub_unit} (consumo)` });
+                          unitOptions.push({ value: stockItem.sub_unit, label: `${stockItem.sub_unit} (${t('dishes.unit_secondary')})` });
                         }
                         if (stockItem.recipe_unit) {
-                          unitOptions.push({ value: stockItem.recipe_unit, label: `${stockItem.recipe_unit} (receita)` });
+                          unitOptions.push({ value: stockItem.recipe_unit, label: `${stockItem.recipe_unit} (${t('dishes.unit_tertiary')})` });
                         }
                       }
 

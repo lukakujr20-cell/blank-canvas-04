@@ -81,20 +81,25 @@ interface TechnicalSheet {
   dish_id: string;
   item_id: string;
   quantity_per_sale: number;
+  unit: string | null;
 }
 
 interface Item {
   id: string;
   name: string;
   unit: string;
+  sub_unit: string | null;
+  recipe_unit: string | null;
   current_stock: number;
   min_stock: number;
   units_per_package: number;
+  recipe_units_per_consumption: number | null;
 }
 
 interface Ingredient {
   item_id: string;
   quantity: number;
+  unit: string;
 }
 
 interface StockIssue {
@@ -148,7 +153,7 @@ export default function Dishes() {
       const [dishesRes, sheetsRes, itemsRes, categoriesRes, posCategoriesRes] = await Promise.all([
         supabase.from('dishes').select('*').order('name'),
         supabase.from('technical_sheets').select('*'),
-        supabase.from('items').select('id, name, unit, current_stock, min_stock, units_per_package, recipe_units_per_consumption').order('name'),
+        supabase.from('items').select('id, name, unit, sub_unit, recipe_unit, current_stock, min_stock, units_per_package, recipe_units_per_consumption').order('name'),
         supabase.from('categories').select('id, name').order('name'),
         supabase.from('pos_categories').select('id, name').order('name'),
       ]);
@@ -210,25 +215,46 @@ export default function Dishes() {
     });
     const dishIngredients = getDishIngredients(dish.id);
     setIngredients(
-      dishIngredients.map((di) => ({
-        item_id: di.item_id,
-        quantity: di.quantity_per_sale,
-      }))
+      dishIngredients.map((di) => {
+        const item = getItemById(di.item_id);
+        return {
+          item_id: di.item_id,
+          quantity: di.quantity_per_sale,
+          unit: di.unit || item?.unit || '',
+        };
+      })
     );
     setDishModalOpen(true);
   };
 
   const addIngredient = () => {
-    setIngredients([...ingredients, { item_id: '', quantity: 0 }]);
+    setIngredients([...ingredients, { item_id: '', quantity: 0, unit: '' }]);
   };
 
   const removeIngredient = (index: number) => {
     setIngredients(ingredients.filter((_, i) => i !== index));
   };
 
+  const getAvailableUnits = (itemId: string): { value: string; label: string }[] => {
+    const item = getItemById(itemId);
+    if (!item) return [];
+    const units: { value: string; label: string }[] = [];
+    if (item.unit) units.push({ value: item.unit, label: `${item.unit} (${t('dishes.unit_primary')})` });
+    if (item.sub_unit) units.push({ value: item.sub_unit, label: `${item.sub_unit} (${t('dishes.unit_secondary')})` });
+    if (item.recipe_unit) units.push({ value: item.recipe_unit, label: `${item.recipe_unit} (${t('dishes.unit_tertiary')})` });
+    return units;
+  };
+
   const updateIngredient = (index: number, field: keyof Ingredient, value: string | number) => {
     const updated = [...ingredients];
     updated[index] = { ...updated[index], [field]: value };
+    // When item changes, auto-set unit to primary
+    if (field === 'item_id') {
+      const item = getItemById(value as string);
+      if (item) {
+        updated[index].unit = item.unit;
+      }
+    }
     setIngredients(updated);
   };
 
@@ -295,6 +321,7 @@ export default function Dishes() {
           dish_id: dishId,
           item_id: ing.item_id,
           quantity_per_sale: ing.quantity,
+          unit: ing.unit || null,
         }));
 
         const { error: sheetsError } = await supabase
@@ -351,6 +378,28 @@ export default function Dishes() {
     setSaleModalOpen(true);
   };
 
+  /** Convert a quantity in the given unit to purchase units (for stock deduction) */
+  const convertToPurchaseUnits = (qty: number, item: Item, selectedUnit: string | null): number => {
+    const unit = selectedUnit || item.unit;
+    const unitsPerPackage = item.units_per_package || 1;
+    const recipeUnitsPerConsumption = item.recipe_units_per_consumption || 1;
+
+    if (unit === item.unit) {
+      // Already in purchase units
+      return qty;
+    }
+    if (unit === item.sub_unit) {
+      // Consumption units → purchase units
+      return qty / unitsPerPackage;
+    }
+    if (unit === item.recipe_unit) {
+      // Recipe units → purchase units
+      return qty / (unitsPerPackage * recipeUnitsPerConsumption);
+    }
+    // Fallback
+    return qty;
+  };
+
   const validateStock = (dish: Dish, quantity: number): StockIssue[] => {
     const issues: StockIssue[] = [];
     const dishIngredients = getDishIngredients(dish.id);
@@ -359,16 +408,12 @@ export default function Dishes() {
       const item = getItemById(ing.item_id);
       if (!item) continue;
 
-      // Calculate needed quantity considering units_per_package
-      const neededUnits = ing.quantity_per_sale * quantity;
-      const unitsPerPackage = item.units_per_package || 1;
-      const recipeConversion = (item as any).recipe_units_per_consumption || 1;
-      const neededPackages = neededUnits / (unitsPerPackage * recipeConversion);
+      const neededInPurchase = convertToPurchaseUnits(ing.quantity_per_sale * quantity, item, ing.unit);
 
-      if (item.current_stock < neededPackages) {
+      if (item.current_stock < neededInPurchase) {
         issues.push({
           itemName: item.name,
-          needed: neededPackages,
+          needed: neededInPurchase,
           available: item.current_stock,
           unit: item.unit,
         });
@@ -439,11 +484,7 @@ export default function Dishes() {
         const item = getItemById(ing.item_id);
         if (!item) continue;
 
-        // Calculate deduction considering units_per_package
-        const neededUnits = ing.quantity_per_sale * saleQuantity;
-        const unitsPerPackage = item.units_per_package || 1;
-        const recipeConversion = (item as any).recipe_units_per_consumption || 1;
-        const quantityToDeduct = neededUnits / (unitsPerPackage * recipeConversion);
+        const quantityToDeduct = convertToPurchaseUnits(ing.quantity_per_sale * saleQuantity, item, ing.unit);
         const newStock = item.current_stock - quantityToDeduct;
 
         // Update item stock
@@ -713,9 +754,30 @@ export default function Dishes() {
                             className="w-24"
                           />
                           {ing.item_id && (
-                            <span className="text-sm text-muted-foreground w-12">
-                              {getItemById(ing.item_id)?.unit}
-                            </span>
+                            (() => {
+                              const availableUnits = getAvailableUnits(ing.item_id);
+                              return availableUnits.length > 1 ? (
+                                <Select
+                                  value={ing.unit || getItemById(ing.item_id)?.unit || ''}
+                                  onValueChange={(value) => updateIngredient(index, 'unit', value)}
+                                >
+                                  <SelectTrigger className="w-28">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {availableUnits.map((u) => (
+                                      <SelectItem key={u.value} value={u.value}>
+                                        {u.label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              ) : (
+                                <span className="text-sm text-muted-foreground w-12">
+                                  {ing.unit || getItemById(ing.item_id)?.unit}
+                                </span>
+                              );
+                            })()
                           )}
                           <Button
                             type="button"
@@ -889,13 +951,13 @@ export default function Dishes() {
                        {getDishIngredients(selectedDishForSale.id).map((ing) => {
                          const item = getItemById(ing.item_id);
                          if (!item) return null;
-                         const needed = ing.quantity_per_sale * saleQuantity;
-                         const isInsufficient = item.current_stock < needed;
+                         const neededInPurchase = convertToPurchaseUnits(ing.quantity_per_sale * saleQuantity, item, ing.unit);
+                         const isInsufficient = item.current_stock < neededInPurchase;
                          return (
                            <TableRow key={ing.id}>
                              <TableCell>{item.name}</TableCell>
                              <TableCell className={`text-right ${isInsufficient ? 'text-destructive font-medium' : ''}`}>
-                               {formatQuantity(needed)} {item.unit}
+                               {formatQuantity(neededInPurchase)} {item.unit}
                              </TableCell>
                              <TableCell className="text-right text-muted-foreground">
                                {formatQuantity(item.current_stock)} {item.unit}

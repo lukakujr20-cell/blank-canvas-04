@@ -463,6 +463,9 @@ const translations: Record<Language, Record<string, string>> = {
     'dishes.tables_free': 'Mesas Livres',
     'dishes.send_order': 'Enviar Pedido',
     'dishes.order_sent_to': 'Pedido enviado para',
+    'dishes.unit_primary': 'Compra',
+    'dishes.unit_secondary': 'Consumo',
+    'dishes.unit_tertiary': 'Receita',
 
     // Billing / Review
     'billing.review_title': 'Revisão da Conta',
@@ -1104,6 +1107,9 @@ const translations: Record<Language, Record<string, string>> = {
     'dishes.tables_free': 'Mesas Libres',
     'dishes.send_order': 'Enviar Pedido',
     'dishes.order_sent_to': 'Pedido enviado a',
+    'dishes.unit_primary': 'Compra',
+    'dishes.unit_secondary': 'Consumo',
+    'dishes.unit_tertiary': 'Receta',
 
     // Billing / Review
     'billing.review_title': 'Revisión de la Cuenta',
@@ -1744,6 +1750,9 @@ const translations: Record<Language, Record<string, string>> = {
     'dishes.tables_free': 'Free Tables',
     'dishes.send_order': 'Send Order',
     'dishes.order_sent_to': 'Order sent to',
+    'dishes.unit_primary': 'Purchase',
+    'dishes.unit_secondary': 'Consumption',
+    'dishes.unit_tertiary': 'Recipe',
 
     // Billing / Review
     'billing.review_title': 'Bill Review',
