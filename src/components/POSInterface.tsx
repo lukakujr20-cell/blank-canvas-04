@@ -264,6 +264,7 @@ export default function POSInterface({
   const [ingredientSearch, setIngredientSearch] = useState('');
   const [creatingPosCategory, setCreatingPosCategory] = useState(false);
   const [newPosCategoryName, setNewPosCategoryName] = useState('');
+  const [deleteProductAlertOpen, setDeleteProductAlertOpen] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -509,7 +510,27 @@ export default function POSInterface({
     }
   };
 
-  // Combine dishes and direct sale items for display
+  const deleteProduct = async () => {
+    if (!editingProduct) return;
+    try {
+      if (editingProduct.type === 'dish') {
+        // Delete technical sheets first
+        await supabase.from('technical_sheets').delete().eq('dish_id', editingProduct.id);
+        const { error } = await supabase.from('dishes').delete().eq('id', editingProduct.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('items').delete().eq('id', editingProduct.id);
+        if (error) throw error;
+      }
+      toast({ title: t('pos.product_deleted') });
+      setDeleteProductAlertOpen(false);
+      setProductDialogOpen(false);
+      await fetchData();
+    } catch (err) {
+      console.error(err);
+      toast({ title: t('pos.product_delete_error'), variant: 'destructive' });
+    }
+  };
   const allProducts = [
     ...dishes.map((d) => ({
       id: d.id, name: d.name, description: d.description, price: d.price,
@@ -1036,7 +1057,10 @@ export default function POSInterface({
 
                       {/* Edit/Delete overlay on hover (only for managers) */}
                       {canManage && (
-                        <div className="absolute -top-1 -right-1 flex gap-0.5 opacity-0 group-hover/cat:opacity-100 transition-opacity z-10">
+                        <div className={cn(
+                          "absolute -top-1 -right-1 flex gap-0.5 transition-opacity z-10",
+                          isMobile ? "opacity-100" : "opacity-0 group-hover/cat:opacity-100"
+                        )}>
                           <button
                             className="h-6 w-6 rounded-full bg-card border shadow-sm flex items-center justify-center hover:bg-accent transition-colors"
                             onClick={(e) => {
@@ -1126,17 +1150,32 @@ export default function POSInterface({
                         key={`${product.type}-${product.id}`}
                         className="relative bg-card rounded-xl border shadow-sm hover:shadow-md transition-all text-left overflow-hidden group/product"
                       >
-                        {/* Edit button for managers */}
+                        {/* Edit/Delete buttons for managers */}
                         {canManage && (
-                          <button
-                            className="absolute top-2 right-2 z-10 h-7 w-7 rounded-full bg-card/90 border shadow-sm flex items-center justify-center opacity-0 group-hover/product:opacity-100 transition-opacity hover:bg-accent"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openEditProduct(product);
-                            }}
-                          >
-                            <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-                          </button>
+                          <div className={cn(
+                            "absolute top-2 right-2 z-10 flex gap-1 transition-opacity",
+                            isMobile ? "opacity-100" : "opacity-0 group-hover/product:opacity-100"
+                          )}>
+                            <button
+                              className="h-7 w-7 rounded-full bg-card/90 border shadow-sm flex items-center justify-center hover:bg-accent"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openEditProduct(product);
+                              }}
+                            >
+                              <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                            </button>
+                            <button
+                              className="h-7 w-7 rounded-full bg-card/90 border shadow-sm flex items-center justify-center hover:bg-destructive/10"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingProduct({ id: product.id, type: product.type });
+                                setDeleteProductAlertOpen(true);
+                              }}
+                            >
+                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                            </button>
+                          </div>
                         )}
                         <button
                           className="w-full text-left"
@@ -1655,16 +1694,47 @@ export default function POSInterface({
               </div>
             )}
 
-            <Button
-              className="w-full"
-              onClick={saveProduct}
-              disabled={!productName.trim() || !productPrice || parseFloat(productPrice) <= 0}
-            >
-              {editingProduct ? t('inventory.save_changes') : t('dishes.create')}
-            </Button>
+            <div className="flex gap-2">
+              {editingProduct && (
+                <Button
+                  variant="destructive"
+                  className="flex-shrink-0"
+                  onClick={() => setDeleteProductAlertOpen(true)}
+                >
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  {t('common.delete')}
+                </Button>
+              )}
+              <Button
+                className="flex-1"
+                onClick={saveProduct}
+                disabled={!productName.trim() || !productPrice || parseFloat(productPrice) <= 0}
+              >
+                {editingProduct ? t('inventory.save_changes') : t('dishes.create')}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Product Confirmation */}
+      <AlertDialog open={deleteProductAlertOpen} onOpenChange={setDeleteProductAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('pos.delete_product')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('pos.confirm_delete_product')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={deleteProduct}
+            >
+              {t('common.delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Bill Review Modal */}
       <BillReviewModal
