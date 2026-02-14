@@ -273,9 +273,9 @@ export default function POSInterface({
   const fetchData = async () => {
     try {
       const [dishesRes, itemsRes, categoriesRes, posCategoriesRes, sheetsRes, orderRes] = await Promise.all([
-        supabase.from('dishes').select('*').order('name'),
-        supabase.from('items').select('*'),
-        supabase.from('categories').select('*').order('name'),
+        supabase.from('dishes').select('*').is('deleted_at', null).order('name'),
+        supabase.from('items').select('*').is('deleted_at', null),
+        supabase.from('categories').select('*').is('deleted_at', null).order('name'),
         supabase.from('pos_categories').select('*').order('name'),
         supabase.from('technical_sheets').select('*'),
         supabase.from('orders').select('total, consumption_type').eq('id', orderId).single(),
@@ -513,13 +513,12 @@ export default function POSInterface({
   const deleteProduct = async () => {
     if (!editingProduct) return;
     try {
+      const now = new Date().toISOString();
       if (editingProduct.type === 'dish') {
-        // Delete technical sheets first
-        await supabase.from('technical_sheets').delete().eq('dish_id', editingProduct.id);
-        const { error } = await supabase.from('dishes').delete().eq('id', editingProduct.id);
+        const { error } = await supabase.from('dishes').update({ deleted_at: now }).eq('id', editingProduct.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('items').delete().eq('id', editingProduct.id);
+        const { error } = await supabase.from('items').update({ deleted_at: now }).eq('id', editingProduct.id);
         if (error) throw error;
       }
       toast({ title: t('pos.product_deleted') });

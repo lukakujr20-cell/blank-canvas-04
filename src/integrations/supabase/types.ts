@@ -56,18 +56,21 @@ export type Database = {
       categories: {
         Row: {
           created_at: string
+          deleted_at: string | null
           id: string
           name: string
           restaurant_id: string | null
         }
         Insert: {
           created_at?: string
+          deleted_at?: string | null
           id?: string
           name: string
           restaurant_id?: string | null
         }
         Update: {
           created_at?: string
+          deleted_at?: string | null
           id?: string
           name?: string
           restaurant_id?: string | null
@@ -78,6 +81,7 @@ export type Database = {
         Row: {
           category_id: string | null
           created_at: string
+          deleted_at: string | null
           description: string | null
           id: string
           name: string
@@ -88,6 +92,7 @@ export type Database = {
         Insert: {
           category_id?: string | null
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
           id?: string
           name: string
@@ -98,6 +103,7 @@ export type Database = {
         Update: {
           category_id?: string | null
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
           id?: string
           name?: string
@@ -165,6 +171,7 @@ export type Database = {
           category_id: string | null
           created_at: string
           current_stock: number | null
+          deleted_at: string | null
           direct_sale: boolean | null
           expiry_date: string | null
           id: string
@@ -186,6 +193,7 @@ export type Database = {
           category_id?: string | null
           created_at?: string
           current_stock?: number | null
+          deleted_at?: string | null
           direct_sale?: boolean | null
           expiry_date?: string | null
           id?: string
@@ -207,6 +215,7 @@ export type Database = {
           category_id?: string | null
           created_at?: string
           current_stock?: number | null
+          deleted_at?: string | null
           direct_sale?: boolean | null
           expiry_date?: string | null
           id?: string

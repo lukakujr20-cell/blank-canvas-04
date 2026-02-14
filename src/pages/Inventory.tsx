@@ -5,6 +5,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -52,6 +53,8 @@ import {
   CalendarIcon,
   Save,
   ShoppingCart,
+  Archive,
+  ArchiveRestore,
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
@@ -114,6 +117,7 @@ export default function Inventory() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [showArchived, setShowArchived] = useState(false);
 
   // Inline editing state for host/super_admin
   const [inlineEdits, setInlineEdits] = useState<Map<string, { current_stock?: number; expiry_date?: string | null }>>(new Map());
@@ -153,8 +157,8 @@ export default function Inventory() {
   const fetchData = async () => {
     try {
       const [categoriesRes, itemsRes, profilesRes, suppliersRes, posCategoriesRes] = await Promise.all([
-        supabase.from('categories').select('*').order('name'),
-        supabase.from('items').select('*').order('name'),
+        supabase.from('categories').select('*').is('deleted_at', null).order('name'),
+        supabase.from('items').select('*').is('deleted_at', null).order('name'),
         supabase.from('profiles').select('*'),
         supabase.from('suppliers').select('*').order('name'),
         supabase.from('pos_categories').select('id, name').order('name'),
@@ -304,15 +308,17 @@ export default function Inventory() {
   const handleDeleteCategory = async () => {
     if (!deleteCategoryAlert) return;
     try {
-      // CASCADE will handle items -> technical_sheets, stock_batches, stock_history
-      const { error } = await supabase.from('categories').delete().eq('id', deleteCategoryAlert.id);
+      const now = new Date().toISOString();
+      // Soft delete: set deleted_at on category and its items
+      await supabase.from('items').update({ deleted_at: now }).eq('category_id', deleteCategoryAlert.id);
+      const { error } = await supabase.from('categories').update({ deleted_at: now }).eq('id', deleteCategoryAlert.id);
       if (error) throw error;
 
       toast({ title: t('inventory.category_deleted') });
       setDeleteCategoryAlert(null);
       fetchData();
     } catch (error) {
-      console.error('Error deleting category:', error);
+      console.error('Error archiving category:', error);
       toast({ title: t('inventory.error_delete_category'), variant: 'destructive' });
     }
   };
@@ -411,18 +417,63 @@ export default function Inventory() {
   const handleDeleteItem = async () => {
     if (!deleteItemAlert) return;
     try {
-      // CASCADE will handle technical_sheets, stock_batches, stock_history
-      const { error } = await supabase.from('items').delete().eq('id', deleteItemAlert.id);
+      // Soft delete: set deleted_at
+      const { error } = await supabase.from('items').update({ deleted_at: new Date().toISOString() }).eq('id', deleteItemAlert.id);
       if (error) throw error;
 
       toast({ title: t('inventory.item_deleted') });
       setDeleteItemAlert(null);
       fetchData();
     } catch (error) {
-      console.error('Error deleting item:', error);
+      console.error('Error archiving item:', error);
       toast({ title: t('inventory.error_delete_item'), variant: 'destructive' });
     }
   };
+
+  // Restore functions
+  const handleRestoreCategory = async (categoryId: string) => {
+    try {
+      await supabase.from('items').update({ deleted_at: null }).eq('category_id', categoryId);
+      const { error } = await supabase.from('categories').update({ deleted_at: null }).eq('id', categoryId);
+      if (error) throw error;
+      toast({ title: t('inventory.category_restored') });
+      fetchArchivedData();
+      fetchData();
+    } catch (error) {
+      console.error('Error restoring category:', error);
+      toast({ title: t('common.error'), variant: 'destructive' });
+    }
+  };
+
+  const handleRestoreItem = async (itemId: string) => {
+    try {
+      const { error } = await supabase.from('items').update({ deleted_at: null }).eq('id', itemId);
+      if (error) throw error;
+      toast({ title: t('inventory.item_restored') });
+      fetchArchivedData();
+      fetchData();
+    } catch (error) {
+      console.error('Error restoring item:', error);
+      toast({ title: t('common.error'), variant: 'destructive' });
+    }
+  };
+
+  // Archived data
+  const [archivedCategories, setArchivedCategories] = useState<Category[]>([]);
+  const [archivedItems, setArchivedItems] = useState<Item[]>([]);
+
+  const fetchArchivedData = async () => {
+    const [catsRes, itemsRes] = await Promise.all([
+      supabase.from('categories').select('*').not('deleted_at', 'is', null).order('name'),
+      supabase.from('items').select('*').not('deleted_at', 'is', null).order('name'),
+    ]);
+    setArchivedCategories(catsRes.data || []);
+    setArchivedItems(itemsRes.data || []);
+  };
+
+  useEffect(() => {
+    if (showArchived) fetchArchivedData();
+  }, [showArchived]);
 
   const getRowClassName = (item: Item) => {
     if (item.expiry_date) {
@@ -1139,8 +1190,74 @@ export default function Inventory() {
                               ))}
                             </TableBody>
                           </Table>
-                        </div>
-                      )}
+          </div>
+        )}
+
+        {/* Archived Toggle */}
+        {!isReadOnly && (
+          <div className="flex justify-center">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowArchived(!showArchived)}
+              className="gap-2"
+            >
+              {showArchived ? <ArchiveRestore className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
+              {showArchived ? t('inventory.hide_archived') : t('inventory.show_archived')}
+            </Button>
+          </div>
+        )}
+
+        {/* Archived Section */}
+        {showArchived && (archivedCategories.length > 0 || archivedItems.length > 0) && (
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold text-muted-foreground flex items-center gap-2">
+              <Archive className="h-5 w-5" />
+              {t('inventory.archived_tab')}
+            </h2>
+            {archivedCategories.map((category) => {
+              const catItems = archivedItems.filter(i => i.category_id === category.id);
+              return (
+                <Card key={category.id} className="opacity-60 border-dashed">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <CardTitle className="text-lg uppercase tracking-wide line-through">
+                          {category.name}
+                        </CardTitle>
+                        <Badge variant="secondary">{t('inventory.archived_label')}</Badge>
+                        <span className="text-sm text-muted-foreground">
+                          ({catItems.length} {catItems.length === 1 ? t('inventory.item') : t('inventory.items')})
+                        </span>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => handleRestoreCategory(category.id)} className="gap-1">
+                        <ArchiveRestore className="h-4 w-4" />
+                        {t('inventory.restore')}
+                      </Button>
+                    </div>
+                  </CardHeader>
+                </Card>
+              );
+            })}
+            {/* Orphan archived items (category still active but item archived) */}
+            {archivedItems
+              .filter(i => !archivedCategories.some(c => c.id === i.category_id))
+              .map((item) => (
+                <Card key={item.id} className="opacity-60 border-dashed">
+                  <CardContent className="flex items-center justify-between py-3">
+                    <div className="flex items-center gap-3">
+                      <span className="font-medium line-through">{item.name}</span>
+                      <Badge variant="secondary">{t('inventory.archived_label')}</Badge>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => handleRestoreItem(item.id)} className="gap-1">
+                      <ArchiveRestore className="h-4 w-4" />
+                      {t('inventory.restore')}
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+          </div>
+        )}
                     </CardContent>
                   )}
                 </Card>
