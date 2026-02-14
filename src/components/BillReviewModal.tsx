@@ -18,7 +18,7 @@ import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Printer, CreditCard, Trash2, Plus, ShieldAlert, Users, Banknote, Wallet } from 'lucide-react';
+import { CheckCircle2, CreditCard, Trash2, Plus, ShieldAlert, Users, Banknote, Wallet } from 'lucide-react';
 
 interface OrderItem {
   id: string;
@@ -52,7 +52,6 @@ interface BillReviewModalProps {
   waiterName: string;
   onAddItem: () => void;
   onClose: (paymentMethod?: string) => void;
-  onPrint: () => void;
 }
 
 export default function BillReviewModal({
@@ -64,7 +63,6 @@ export default function BillReviewModal({
   waiterName,
   onAddItem,
   onClose,
-  onPrint,
 }: BillReviewModalProps) {
   const { role } = useAuth();
   const { t } = useLanguage();
@@ -113,9 +111,6 @@ export default function BillReviewModal({
     setProcessing(true);
     try {
       onClose(paymentMethod);
-      setTimeout(() => {
-        onPrint();
-      }, 500);
     } catch (error) {
       console.error('Error processing payment:', error);
     } finally {
@@ -283,8 +278,8 @@ export default function BillReviewModal({
                 onClick={handleConfirmPayment}
                 disabled={processing}
               >
-                <Printer className="mr-2 h-4 w-4" />
-                {processing ? t('common.saving') : t('billing.close_and_print')}
+                <CheckCircle2 className="mr-2 h-4 w-4" />
+                {processing ? t('common.saving') : t('billing.finalize_release')}
               </Button>
             </div>
           )}

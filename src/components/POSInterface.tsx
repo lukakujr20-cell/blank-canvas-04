@@ -761,7 +761,7 @@ export default function POSInterface({
           .eq('id', tableId);
       }
 
-      toast({ title: t('dining.order_closed') });
+      toast({ title: t('billing.table_finalized') });
       setBillReviewOpen(false);
       onOrderUpdated();
       onClose();
@@ -1663,7 +1663,6 @@ export default function POSInterface({
           setBillReviewOpen(false);
         }}
         onClose={closeOrder}
-        onPrint={() => window.print()}
       />
     </>
   );
