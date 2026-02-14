@@ -84,8 +84,8 @@ export default function StockEntry() {
   const fetchData = async () => {
     try {
       const [categoriesRes, itemsRes] = await Promise.all([
-        supabase.from('categories').select('*').order('name'),
-        supabase.from('items').select('*').order('name'),
+        supabase.from('categories').select('*').is('deleted_at', null).order('name'),
+        supabase.from('items').select('*').is('deleted_at', null).order('name'),
       ]);
 
       if (categoriesRes.error) throw categoriesRes.error;

@@ -151,10 +151,10 @@ export default function Dishes() {
   const fetchData = async () => {
     try {
       const [dishesRes, sheetsRes, itemsRes, categoriesRes, posCategoriesRes] = await Promise.all([
-        supabase.from('dishes').select('*').order('name'),
+        supabase.from('dishes').select('*').is('deleted_at', null).order('name'),
         supabase.from('technical_sheets').select('*'),
-        supabase.from('items').select('id, name, unit, sub_unit, recipe_unit, current_stock, min_stock, units_per_package, recipe_units_per_consumption').order('name'),
-        supabase.from('categories').select('id, name').order('name'),
+        supabase.from('items').select('id, name, unit, sub_unit, recipe_unit, current_stock, min_stock, units_per_package, recipe_units_per_consumption').is('deleted_at', null).order('name'),
+        supabase.from('categories').select('id, name').is('deleted_at', null).order('name'),
         supabase.from('pos_categories').select('id, name').order('name'),
       ]);
 

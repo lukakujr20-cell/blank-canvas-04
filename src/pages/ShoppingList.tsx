@@ -44,7 +44,7 @@ export default function ShoppingList() {
     const fetchData = async () => {
       try {
         const [itemsRes, suppliersRes] = await Promise.all([
-          supabase.from('items').select('*'),
+          supabase.from('items').select('*').is('deleted_at', null),
           supabase.from('suppliers').select('*').order('name'),
         ]);
 

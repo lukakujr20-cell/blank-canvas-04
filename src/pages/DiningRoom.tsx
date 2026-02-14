@@ -212,9 +212,9 @@ export default function DiningRoom() {
         supabase.from('restaurant_tables').select('*').order('table_number'),
         supabase.from('orders').select('*').eq('status', 'open'),
         supabase.from('order_items').select('*'),
-        supabase.from('dishes').select('*').order('name'),
+        supabase.from('dishes').select('*').is('deleted_at', null).order('name'),
         supabase.from('technical_sheets').select('*'),
-        supabase.from('items').select('id, name, unit, current_stock, units_per_package, recipe_units_per_consumption'),
+        supabase.from('items').select('id, name, unit, current_stock, units_per_package, recipe_units_per_consumption').is('deleted_at', null),
         supabase.from('profiles').select('id, full_name'),
       ]);
 
