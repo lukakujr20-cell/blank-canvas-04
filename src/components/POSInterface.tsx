@@ -745,14 +745,29 @@ export default function POSInterface({
 
   const closeOrder = async (paymentMethod?: string) => {
     try {
-      await supabase
-        .from('orders')
-        .update({
+      // Check if order has items
+      const { data: existingItems } = await supabase
+        .from('order_items')
+        .select('id')
+        .eq('order_id', orderId)
+        .limit(1);
+
+      const isCancel = !existingItems || existingItems.length === 0 || liveTotal === 0;
+
+      if (isCancel) {
+        await supabase.from('order_items').delete().eq('order_id', orderId);
+        await supabase.from('orders').update({
+          status: 'cancelled',
+          closed_at: new Date().toISOString(),
+          total: 0,
+        }).eq('id', orderId);
+      } else {
+        await supabase.from('orders').update({
           status: 'closed',
           closed_at: new Date().toISOString(),
           payment_method: paymentMethod || null,
-        })
-        .eq('id', orderId);
+        }).eq('id', orderId);
+      }
 
       if (tableId) {
         await supabase
@@ -761,7 +776,7 @@ export default function POSInterface({
           .eq('id', tableId);
       }
 
-      toast({ title: t('billing.table_finalized') });
+      toast({ title: isCancel ? t('dining.table_released') : t('billing.table_finalized') });
       setBillReviewOpen(false);
       onOrderUpdated();
       onClose();

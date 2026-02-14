@@ -43,7 +43,6 @@ import {
   Users,
   Plus,
   Minus,
-  Printer,
   X,
   ShoppingCart,
   AlertTriangle,
@@ -143,7 +142,7 @@ export default function DiningRoom() {
   const [tableOptionsOpen, setTableOptionsOpen] = useState(false);
   const [orderModalOpen, setOrderModalOpen] = useState(false);
   const [menuModalOpen, setMenuModalOpen] = useState(false);
-  const [printModalOpen, setPrintModalOpen] = useState(false);
+  
   const [closeOrderConfirmOpen, setCloseOrderConfirmOpen] = useState(false);
   const [billReviewOpen, setBillReviewOpen] = useState(false);
   const [stockIssues, setStockIssues] = useState<StockIssue[]>([]);
@@ -560,16 +559,29 @@ export default function DiningRoom() {
   const closeOrder = async (paymentMethod?: string) => {
     if (!currentOrder) return;
 
+    const hasItems = currentOrderItems.length > 0;
+    const isCancel = !hasItems || (currentOrder.total || 0) === 0;
+
     try {
-      // Update order with closed status and payment method
-      await supabase
-        .from('orders')
-        .update({ 
-          status: 'closed', 
+      if (isCancel) {
+        // Cancel: mark order as cancelled (audit trail), no financial record
+        await supabase.from('order_items').delete().eq('order_id', currentOrder.id);
+        await supabase.from('orders').update({
+          status: 'cancelled',
           closed_at: new Date().toISOString(),
-          payment_method: paymentMethod || null,
-        })
-        .eq('id', currentOrder.id);
+          total: 0,
+        }).eq('id', currentOrder.id);
+      } else {
+        // Normal close with payment
+        await supabase
+          .from('orders')
+          .update({ 
+            status: 'closed', 
+            closed_at: new Date().toISOString(),
+            payment_method: paymentMethod || null,
+          })
+          .eq('id', currentOrder.id);
+      }
 
       // Release the table via Realtime
       if (selectedTable) {
@@ -579,12 +591,13 @@ export default function DiningRoom() {
           .eq('id', selectedTable.id);
       }
 
-      toast({ title: t('dining.order_closed') });
+      toast({ title: isCancel ? t('dining.table_released') : t('billing.table_finalized') });
       setCloseOrderConfirmOpen(false);
       setOrderModalOpen(false);
       setBillReviewOpen(false);
       setCurrentOrder(null);
       setCurrentOrderItems([]);
+      setSelectedTable(null);
       fetchData();
     } catch (error) {
       console.error('Error closing order:', error);
@@ -596,12 +609,8 @@ export default function DiningRoom() {
     }
   };
 
-  const handlePrint = () => {
-    setPrintModalOpen(true);
-  };
-
-  const printReceipt = () => {
-    window.print();
+  const cancelTable = () => {
+    closeOrder();
   };
 
   const getOrderLabel = () => {
@@ -940,7 +949,7 @@ export default function DiningRoom() {
               </div>
 
               {/* Actions */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3">
                 <Button
                   size="lg"
                   className="h-14 text-lg"
@@ -952,31 +961,35 @@ export default function DiningRoom() {
                   <Plus className="mr-2 h-5 w-5" />
                   {t('dining.add_item')}
                 </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="h-14 text-lg"
-                  onClick={handlePrint}
-                  disabled={currentOrderItems.length === 0}
-                >
-                  <Printer className="mr-2 h-5 w-5" />
-                  {t('dining.print_bill')}
-                </Button>
               </div>
 
-              <Button
-                size="lg"
-                variant="default"
-                className="h-14 w-full text-lg"
-                onClick={() => {
-                  setOrderModalOpen(false);
-                  setBillReviewOpen(true);
-                }}
-                disabled={currentOrderItems.length === 0}
-              >
-                <CreditCard className="mr-2 h-5 w-5" />
-                {t('dining.close_order')}
-              </Button>
+              {currentOrderItems.length > 0 ? (
+                <Button
+                  size="lg"
+                  variant="default"
+                  className="h-14 w-full text-lg"
+                  onClick={() => {
+                    setOrderModalOpen(false);
+                    setBillReviewOpen(true);
+                  }}
+                >
+                  <CreditCard className="mr-2 h-5 w-5" />
+                  {t('dining.close_order')}
+                </Button>
+              ) : (
+                <Button
+                  size="lg"
+                  variant="destructive"
+                  className="h-14 w-full text-lg"
+                  onClick={() => {
+                    setOrderModalOpen(false);
+                    cancelTable();
+                  }}
+                >
+                  <X className="mr-2 h-5 w-5" />
+                  {t('dining.cancel_release_table')}
+                </Button>
+              )}
             </div>
           </DialogContent>
         </Dialog>
@@ -1054,55 +1067,6 @@ export default function DiningRoom() {
           </DialogContent>
         </Dialog>
 
-        {/* Print Receipt Modal */}
-        <Dialog open={printModalOpen} onOpenChange={setPrintModalOpen}>
-          <DialogContent className="max-w-sm">
-            <DialogHeader>
-              <DialogTitle>{t('dining.receipt')}</DialogTitle>
-            </DialogHeader>
-            
-            {/* Receipt for printing */}
-            <div id="receipt" className="receipt-print bg-white p-4 text-black">
-              <div className="text-center">
-                <h2 className="text-lg font-bold">RESTAURANTE</h2>
-                <p className="text-sm">--------------------------------</p>
-                <p className="text-sm font-medium">{t('dining.waiter')}: {currentOrder ? getWaiterName(currentOrder.waiter_id) : ''}</p>
-                <p className="text-sm">{getOrderLabel()}</p>
-                {currentOrder?.guest_count && currentOrder.guest_count > 0 && (
-                  <p className="text-sm">{t('dining.guests')}: {currentOrder.guest_count}</p>
-                )}
-                <p className="text-xs">{new Date().toLocaleString()}</p>
-                <p className="text-sm">--------------------------------</p>
-              </div>
-              
-              <div className="my-4 space-y-1">
-                {currentOrderItems.map((item) => (
-                  <div key={item.id} className="flex justify-between text-sm">
-                    <span>{item.quantity}x {item.dish_name}</span>
-                    <span>{formatCurrency(item.quantity * item.unit_price)}</span>
-                  </div>
-                ))}
-              </div>
-              
-              <div className="border-t border-dashed pt-2">
-                <div className="flex justify-between text-sm font-bold">
-                  <span>TOTAL</span>
-                  <span>{formatCurrency(currentOrder?.total || 0)}</span>
-                </div>
-              </div>
-              
-              <div className="mt-4 text-center text-xs">
-                <p>{t('dining.thanks')}</p>
-              </div>
-            </div>
-
-            <Button onClick={printReceipt} className="w-full">
-              <Printer className="mr-2 h-4 w-4" />
-              {t('dining.print')}
-            </Button>
-          </DialogContent>
-        </Dialog>
-
         {/* Close Order Confirmation */}
         <AlertDialog open={closeOrderConfirmOpen} onOpenChange={setCloseOrderConfirmOpen}>
           <AlertDialogContent>
@@ -1169,29 +1133,6 @@ export default function DiningRoom() {
 
       </div>
 
-      {/* Print Styles */}
-      <style>{`
-        @media print {
-          body * {
-            visibility: hidden;
-          }
-          #receipt, #receipt * {
-            visibility: visible;
-          }
-          #receipt {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 80mm;
-            font-family: 'Courier New', monospace;
-          }
-        }
-        .receipt-print {
-          font-family: 'Courier New', monospace;
-          width: 80mm;
-          max-width: 100%;
-        }
-      `}</style>
     </DashboardLayout>
   );
 }
