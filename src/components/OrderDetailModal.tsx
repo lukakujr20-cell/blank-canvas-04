@@ -151,9 +151,6 @@ export default function OrderDetailModal({
   const handlePrint = () => {
     if (onPrint) {
       onPrint();
-    } else {
-      // Default print behavior
-      window.print();
     }
   };
 

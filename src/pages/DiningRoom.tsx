@@ -1158,7 +1158,6 @@ export default function DiningRoom() {
             setMenuModalOpen(true);
           }}
           onClose={closeOrder}
-          onPrint={() => setPrintModalOpen(true)}
         />
 
         {/* Table Management Modal */}
