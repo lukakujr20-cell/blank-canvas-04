@@ -13,6 +13,16 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Table,
   TableBody,
   TableCell,
@@ -131,6 +141,10 @@ export default function Inventory() {
   });
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
+
+  // Delete confirmation state
+  const [deleteCategoryAlert, setDeleteCategoryAlert] = useState<{ id: string; name: string; itemCount: number } | null>(null);
+  const [deleteItemAlert, setDeleteItemAlert] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -282,21 +296,24 @@ export default function Inventory() {
     }
   };
 
-  const handleDeleteCategory = async (categoryId: string) => {
-    if (!confirm(t('inventory.confirm_delete_category'))) return;
+  const promptDeleteCategory = (category: Category) => {
+    const count = items.filter(i => i.category_id === category.id).length;
+    setDeleteCategoryAlert({ id: category.id, name: category.name, itemCount: count });
+  };
 
+  const handleDeleteCategory = async () => {
+    if (!deleteCategoryAlert) return;
     try {
-      const { error } = await supabase.from('categories').delete().eq('id', categoryId);
+      // CASCADE will handle items -> technical_sheets, stock_batches, stock_history
+      const { error } = await supabase.from('categories').delete().eq('id', deleteCategoryAlert.id);
       if (error) throw error;
 
       toast({ title: t('inventory.category_deleted') });
+      setDeleteCategoryAlert(null);
       fetchData();
     } catch (error) {
       console.error('Error deleting category:', error);
-      toast({
-        title: t('inventory.error_delete_category'),
-        variant: 'destructive',
-      });
+      toast({ title: t('inventory.error_delete_category'), variant: 'destructive' });
     }
   };
 
@@ -387,21 +404,23 @@ export default function Inventory() {
     return supplier?.name || '-';
   };
 
-  const handleDeleteItem = async (itemId: string) => {
-    if (!confirm(t('inventory.confirm_delete_item'))) return;
+  const promptDeleteItem = (item: Item) => {
+    setDeleteItemAlert({ id: item.id, name: item.name });
+  };
 
+  const handleDeleteItem = async () => {
+    if (!deleteItemAlert) return;
     try {
-      const { error } = await supabase.from('items').delete().eq('id', itemId);
+      // CASCADE will handle technical_sheets, stock_batches, stock_history
+      const { error } = await supabase.from('items').delete().eq('id', deleteItemAlert.id);
       if (error) throw error;
 
       toast({ title: t('inventory.item_deleted') });
+      setDeleteItemAlert(null);
       fetchData();
     } catch (error) {
       console.error('Error deleting item:', error);
-      toast({
-        title: t('inventory.error_delete_item'),
-        variant: 'destructive',
-      });
+      toast({ title: t('inventory.error_delete_item'), variant: 'destructive' });
     }
   };
 
@@ -974,7 +993,7 @@ export default function Inventory() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => handleDeleteCategory(category.id)}
+                            onClick={() => promptDeleteCategory(category)}
                           >
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
@@ -1109,7 +1128,7 @@ export default function Inventory() {
                                         <Button
                                           variant="ghost"
                                           size="icon"
-                                          onClick={() => handleDeleteItem(item.id)}
+                                          onClick={() => promptDeleteItem(item)}
                                         >
                                           <Trash2 className="h-4 w-4 text-destructive" />
                                         </Button>
@@ -1130,6 +1149,44 @@ export default function Inventory() {
           </div>
         )}
       </div>
+
+      {/* Delete Category AlertDialog */}
+      <AlertDialog open={!!deleteCategoryAlert} onOpenChange={(open) => !open && setDeleteCategoryAlert(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('inventory.delete_category_title')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('inventory.delete_category_warning')
+                .replace('{name}', deleteCategoryAlert?.name || '')
+                .replace('{count}', String(deleteCategoryAlert?.itemCount || 0))}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('inventory.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteCategory} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {t('inventory.delete_confirm')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Item AlertDialog */}
+      <AlertDialog open={!!deleteItemAlert} onOpenChange={(open) => !open && setDeleteItemAlert(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('inventory.delete_item_title')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('inventory.delete_item_warning').replace('{name}', deleteItemAlert?.name || '')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('inventory.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteItem} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {t('inventory.delete_confirm')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 }
