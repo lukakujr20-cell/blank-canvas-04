@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
@@ -17,6 +18,7 @@ export default function FinancialDashboard() {
   const { t } = useLanguage();
   const { formatCurrency } = useCurrency();
   const { currentSession } = useSession();
+  const navigate = useNavigate();
   const [stats, setStats] = useState<FinancialStats>({
     grossRevenue: 0,
     totalOrders: 0,
@@ -29,9 +31,22 @@ export default function FinancialDashboard() {
     fetchFinancials();
   }, [currentSession?.id]);
 
+  // Realtime subscription for orders
+  useEffect(() => {
+    const channel = supabase
+      .channel('financial-dashboard-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+        fetchFinancials();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentSession?.id]);
+
   const fetchFinancials = async () => {
     try {
-      // Get closed orders from current session (or today if no session)
       let query = supabase
         .from('orders')
         .select('id, total, payment_method, closed_at')
@@ -40,7 +55,6 @@ export default function FinancialDashboard() {
       if (currentSession?.id) {
         query = query.eq('session_id', currentSession.id);
       } else {
-        // Fallback: today's orders
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         query = query.gte('closed_at', today.toISOString());
@@ -108,9 +122,12 @@ export default function FinancialDashboard() {
     <div className="space-y-4">
       <h2 className="text-lg font-semibold">{t('finance.title')}</h2>
       
-      {/* Main Stats */}
+      {/* Main Stats - Clickable cards */}
       <div className="grid gap-4 sm:grid-cols-3">
-        <Card>
+        <Card
+          className="cursor-pointer hover:shadow-lg hover:scale-[1.02] hover:border-primary/50 transition-all"
+          onClick={() => navigate('/financeiro')}
+        >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               {t('finance.gross_revenue')}
@@ -123,10 +140,14 @@ export default function FinancialDashboard() {
             <div className="text-2xl font-bold text-primary">
               {formatCurrency(stats.grossRevenue)}
             </div>
+            <p className="text-xs text-muted-foreground mt-1">{t('dashboard.click_to_view')}</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card
+          className="cursor-pointer hover:shadow-lg hover:scale-[1.02] hover:border-primary/50 transition-all"
+          onClick={() => navigate('/financeiro')}
+        >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               {t('finance.total_orders')}
@@ -137,10 +158,14 @@ export default function FinancialDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalOrders}</div>
+            <p className="text-xs text-muted-foreground mt-1">{t('dashboard.click_to_view')}</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card
+          className="cursor-pointer hover:shadow-lg hover:scale-[1.02] hover:border-primary/50 transition-all"
+          onClick={() => navigate('/financeiro')}
+        >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               {t('finance.avg_ticket')}
@@ -153,6 +178,7 @@ export default function FinancialDashboard() {
             <div className="text-2xl font-bold">
               {formatCurrency(stats.avgTicket)}
             </div>
+            <p className="text-xs text-muted-foreground mt-1">{t('dashboard.click_to_view')}</p>
           </CardContent>
         </Card>
       </div>

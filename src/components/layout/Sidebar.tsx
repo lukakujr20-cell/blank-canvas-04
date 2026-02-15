@@ -19,7 +19,7 @@ import {
   Globe,
   Building2,
   ChefHat,
-  
+  DollarSign,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
@@ -93,6 +93,12 @@ const navItems = [
     href: '/dishes',
     icon: UtensilsCrossed,
     roles: ['super_admin', 'host', 'admin'],
+  },
+  {
+    titleKey: 'nav.financeiro',
+    href: '/financeiro',
+    icon: DollarSign,
+    roles: ['super_admin', 'host'],
   },
   {
     titleKey: 'nav.audit_history',

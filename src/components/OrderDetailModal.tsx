@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 import {
   Dialog,
   DialogContent,
@@ -13,7 +15,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { format, parseISO, differenceInMinutes, differenceInHours } from 'date-fns';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { format, parseISO, differenceInMinutes } from 'date-fns';
 import { ptBR, es, enUS } from 'date-fns/locale';
 import { 
   Clock, 
@@ -21,9 +25,12 @@ import {
   Store, 
   UtensilsCrossed, 
   Users,
-  Printer,
   CheckCircle2,
-  Timer
+  Timer,
+  CreditCard,
+  Banknote,
+  Wallet,
+  DollarSign
 } from 'lucide-react';
 
 interface Order {
@@ -63,6 +70,7 @@ interface OrderDetailModalProps {
   onOpenChange: (open: boolean) => void;
   order: Order | null;
   onPrint?: () => void;
+  onOrderClosed?: () => void;
 }
 
 export default function OrderDetailModal({
@@ -70,13 +78,19 @@ export default function OrderDetailModal({
   onOpenChange,
   order,
   onPrint,
+  onOrderClosed,
 }: OrderDetailModalProps) {
   const { t, language } = useLanguage();
   const { formatCurrency } = useCurrency();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [items, setItems] = useState<OrderItem[]>([]);
   const [table, setTable] = useState<RestaurantTable | null>(null);
   const [waiterProfile, setWaiterProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [processing, setProcessing] = useState(false);
 
   const getLocale = () => {
     switch (language) {
@@ -89,6 +103,8 @@ export default function OrderDetailModal({
   useEffect(() => {
     if (open && order) {
       fetchDetails();
+      setShowPayment(false);
+      setPaymentMethod('cash');
     } else {
       setItems([]);
       setTable(null);
@@ -101,14 +117,14 @@ export default function OrderDetailModal({
     
     setLoading(true);
     try {
-      // Fetch order items
-      const { data: itemsData } = await (supabase
-        .from('order_items') as any)
-        .select('*')
-        .eq('order_id', order.id);
-      setItems(itemsData || []);
+      const [itemsRes, profileRes] = await Promise.all([
+        (supabase.from('order_items') as any).select('*').eq('order_id', order.id),
+        supabase.from('profiles').select('*').eq('id', order.waiter_id).maybeSingle(),
+      ]);
 
-      // Fetch table if exists
+      setItems(itemsRes.data || []);
+      setWaiterProfile(profileRes.data as any);
+
       if (order.table_id) {
         const { data: tableData } = await (supabase
           .from('restaurant_tables') as any)
@@ -117,14 +133,6 @@ export default function OrderDetailModal({
           .single();
         setTable(tableData);
       }
-
-      // Fetch waiter profile
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', order.waiter_id)
-        .maybeSingle();
-      setWaiterProfile(profileData as any);
     } catch (error) {
       console.error('Error fetching order details:', error);
     } finally {
@@ -134,32 +142,96 @@ export default function OrderDetailModal({
 
   const calculateDuration = (openedAt: string | null, closedAt: string | null) => {
     if (!openedAt) return '-';
-    
     const start = parseISO(openedAt);
     const end = closedAt ? parseISO(closedAt) : new Date();
-    
     const totalMinutes = differenceInMinutes(end, start);
     const hours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;
-    
-    if (hours > 0) {
-      return `${hours}h ${minutes}min`;
-    }
+    if (hours > 0) return `${hours}h ${minutes}min`;
     return `${minutes}min`;
   };
 
-  const handlePrint = () => {
-    if (onPrint) {
-      onPrint();
+  const handleFinalizeSale = async () => {
+    if (!order || !user) return;
+    setProcessing(true);
+    try {
+      const total = order.total || 0;
+
+      // If total is 0 and no items, just release the table
+      if (total === 0 && items.length === 0) {
+        await handleReleaseTable();
+        return;
+      }
+
+      // Close the order
+      await supabase
+        .from('orders')
+        .update({
+          status: 'closed',
+          closed_at: new Date().toISOString(),
+          payment_method: paymentMethod,
+        })
+        .eq('id', order.id);
+
+      // Release the table if exists
+      if (order.table_id) {
+        await supabase
+          .from('restaurant_tables')
+          .update({ status: 'free', current_order_id: null })
+          .eq('id', order.table_id);
+      }
+
+      toast({ title: t('billing.table_finalized') });
+      onOpenChange(false);
+      onOrderClosed?.();
+    } catch (error) {
+      console.error('Error finalizing:', error);
+      toast({ title: t('common.error'), variant: 'destructive' });
+    } finally {
+      setProcessing(false);
+      setShowPayment(false);
+    }
+  };
+
+  const handleReleaseTable = async () => {
+    if (!order) return;
+    setProcessing(true);
+    try {
+      await supabase
+        .from('orders')
+        .update({
+          status: 'closed',
+          closed_at: new Date().toISOString(),
+        })
+        .eq('id', order.id);
+
+      if (order.table_id) {
+        await supabase
+          .from('restaurant_tables')
+          .update({ status: 'free', current_order_id: null })
+          .eq('id', order.table_id);
+      }
+
+      toast({ title: t('dining.table_released') });
+      onOpenChange(false);
+      onOrderClosed?.();
+    } catch (error) {
+      console.error('Error releasing:', error);
+      toast({ title: t('common.error'), variant: 'destructive' });
+    } finally {
+      setProcessing(false);
     }
   };
 
   if (!order) return null;
 
   const isFinished = order.status === 'closed' || order.status === 'paid';
+  const isOpen = order.status === 'open';
+  const hasItems = items.length > 0;
+  const total = order.total || 0;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) setShowPayment(false); onOpenChange(v); }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -222,17 +294,13 @@ export default function OrderDetailModal({
               <div className="p-3 border rounded-lg text-center">
                 <p className="text-xs text-muted-foreground">{t('orders.opened_at')}</p>
                 <p className="font-medium">
-                  {order.opened_at 
-                    ? format(parseISO(order.opened_at), 'HH:mm', { locale: getLocale() })
-                    : '-'}
+                  {order.opened_at ? format(parseISO(order.opened_at), 'HH:mm', { locale: getLocale() }) : '-'}
                 </p>
               </div>
               <div className="p-3 border rounded-lg text-center">
                 <p className="text-xs text-muted-foreground">{t('orders.closed_at')}</p>
                 <p className="font-medium">
-                  {order.closed_at 
-                    ? format(parseISO(order.closed_at), 'HH:mm', { locale: getLocale() })
-                    : '-'}
+                  {order.closed_at ? format(parseISO(order.closed_at), 'HH:mm', { locale: getLocale() }) : '-'}
                 </p>
               </div>
             </div>
@@ -280,15 +348,66 @@ export default function OrderDetailModal({
             {/* Total */}
             <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg">
               <p className="font-semibold">{t('orders.total')}</p>
-              <p className="text-xl font-bold text-primary">{formatCurrency(order.total || 0)}</p>
+              <p className="text-xl font-bold text-primary">{formatCurrency(total)}</p>
             </div>
 
-            {/* Print Button */}
-            {isFinished && (
-              <Button onClick={handlePrint} className="w-full" variant="outline">
-                <Printer className="h-4 w-4 mr-2" />
-                {t('orders.reprint')}
-              </Button>
+            {/* Payment method selection for open orders */}
+            {isOpen && showPayment && hasItems && total > 0 && (
+              <>
+                <Separator />
+                <div className="space-y-3">
+                  <p className="text-sm font-semibold">{t('billing.payment_method')}</p>
+                  <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="grid grid-cols-3 gap-2">
+                    <div>
+                      <RadioGroupItem value="cash" id="odm-cash" className="peer sr-only" />
+                      <Label htmlFor="odm-cash" className="flex flex-col items-center justify-center rounded-lg border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer">
+                        <Banknote className="mb-1 h-5 w-5" />
+                        <span className="text-xs font-medium">{t('billing.cash')}</span>
+                      </Label>
+                    </div>
+                    <div>
+                      <RadioGroupItem value="card" id="odm-card" className="peer sr-only" />
+                      <Label htmlFor="odm-card" className="flex flex-col items-center justify-center rounded-lg border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer">
+                        <CreditCard className="mb-1 h-5 w-5" />
+                        <span className="text-xs font-medium">{t('billing.card')}</span>
+                      </Label>
+                    </div>
+                    <div>
+                      <RadioGroupItem value="other" id="odm-other" className="peer sr-only" />
+                      <Label htmlFor="odm-other" className="flex flex-col items-center justify-center rounded-lg border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer">
+                        <Wallet className="mb-1 h-5 w-5" />
+                        <span className="text-xs font-medium">{t('billing.other')}</span>
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+              </>
+            )}
+
+            {/* Action buttons for open orders */}
+            {isOpen && (
+              <div className="flex flex-col gap-2">
+                {!hasItems || total === 0 ? (
+                  <Button onClick={handleReleaseTable} disabled={processing} className="w-full" variant="outline">
+                    {processing ? t('common.saving') : t('dining.cancel_release_table')}
+                  </Button>
+                ) : !showPayment ? (
+                  <Button onClick={() => setShowPayment(true)} className="w-full">
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    {t('billing.finalize_sale')}
+                  </Button>
+                ) : (
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => setShowPayment(false)} disabled={processing}>
+                      {t('common.cancel')}
+                    </Button>
+                    <Button onClick={handleFinalizeSale} disabled={processing} className="flex-1">
+                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                      {processing ? t('common.saving') : t('billing.finalize_release')}
+                    </Button>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         )}
