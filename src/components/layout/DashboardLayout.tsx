@@ -20,6 +20,7 @@ const ROUTE_PERMISSION_MAP: Record<string, PermissionKey> = {
   '/stock-entry': 'stock_entry',
   '/inventory': 'inventory_management',
   '/dashboard': 'dashboard',
+  '/financeiro': 'dashboard',
 };
 
 export default function DashboardLayout({ children, requireAdmin = false }: DashboardLayoutProps) {

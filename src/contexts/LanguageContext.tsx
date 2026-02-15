@@ -789,6 +789,13 @@ const translations: Record<Language, Record<string, string>> = {
     'users.no_restaurant': 'Sem restaurante vinculado',
     'users.owner': 'Proprietário',
     'users.employees': 'Funcionários',
+    // Financeiro Page
+    'nav.financeiro': 'Financeiro',
+    'financeiro.title': 'Painel Financeiro',
+    'financeiro.subtitle': 'Analise o faturamento e os pedidos finalizados',
+    'financeiro.orders_table': 'Pedidos Finalizados',
+    'financeiro.col_date': 'Data/Hora',
+    'financeiro.col_origin': 'Origem',
   },
   'es': {
     // Auth
@@ -1569,6 +1576,13 @@ const translations: Record<Language, Record<string, string>> = {
     'users.no_restaurant': 'Sin restaurante vinculado',
     'users.owner': 'Propietario',
     'users.employees': 'Empleados',
+    // Financeiro Page
+    'nav.financeiro': 'Financiero',
+    'financeiro.title': 'Panel Financiero',
+    'financeiro.subtitle': 'Analice la facturación y los pedidos finalizados',
+    'financeiro.orders_table': 'Pedidos Finalizados',
+    'financeiro.col_date': 'Fecha/Hora',
+    'financeiro.col_origin': 'Origen',
   },
   'en': {
     // Auth
@@ -2349,6 +2363,13 @@ const translations: Record<Language, Record<string, string>> = {
     'users.no_restaurant': 'No linked restaurant',
     'users.owner': 'Owner',
     'users.employees': 'Employees',
+    // Financeiro Page
+    'nav.financeiro': 'Financial',
+    'financeiro.title': 'Financial Dashboard',
+    'financeiro.subtitle': 'Analyze revenue and completed orders',
+    'financeiro.orders_table': 'Completed Orders',
+    'financeiro.col_date': 'Date/Time',
+    'financeiro.col_origin': 'Origin',
   },
 };
 

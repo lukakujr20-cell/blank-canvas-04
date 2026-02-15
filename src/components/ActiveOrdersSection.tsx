@@ -236,6 +236,7 @@ export default function ActiveOrdersSection() {
         open={detailModalOpen}
         onOpenChange={setDetailModalOpen}
         order={selectedOrder}
+        onOrderClosed={fetchData}
       />
     </Card>
   );
