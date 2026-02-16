@@ -182,6 +182,10 @@ export default function OrderDetailModal({
       }
 
       toast({ title: t('billing.table_finalized') });
+      // Clear local state before closing modal to prevent stale data
+      setItems([]);
+      setTable(null);
+      setWaiterProfile(null);
       onOpenChange(false);
       onOrderClosed?.();
     } catch (error) {
@@ -197,11 +201,15 @@ export default function OrderDetailModal({
     if (!order) return;
     setProcessing(true);
     try {
+      // Delete any lingering order items (zero-consumption cleanup)
+      await (supabase.from('order_items') as any).delete().eq('order_id', order.id);
+
       await supabase
         .from('orders')
         .update({
-          status: 'closed',
+          status: 'cancelled',
           closed_at: new Date().toISOString(),
+          total: 0,
         })
         .eq('id', order.id);
 
@@ -213,6 +221,10 @@ export default function OrderDetailModal({
       }
 
       toast({ title: t('dining.table_released') });
+      // Clear local state before closing modal to prevent stale data
+      setItems([]);
+      setTable(null);
+      setWaiterProfile(null);
       onOpenChange(false);
       onOrderClosed?.();
     } catch (error) {
@@ -387,9 +399,9 @@ export default function OrderDetailModal({
             {/* Action buttons for open orders */}
             {isOpen && (
               <div className="flex flex-col gap-2">
-                {!hasItems || total === 0 ? (
+              {!hasItems || total === 0 ? (
                   <Button onClick={handleReleaseTable} disabled={processing} className="w-full" variant="outline">
-                    {processing ? t('common.saving') : t('dining.cancel_release_table')}
+                    {processing ? t('common.saving') : t('dining.release_table_no_consumption')}
                   </Button>
                 ) : !showPayment ? (
                   <Button onClick={() => setShowPayment(true)} className="w-full">
