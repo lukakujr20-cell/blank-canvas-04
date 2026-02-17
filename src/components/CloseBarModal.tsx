@@ -13,9 +13,24 @@ import { useCurrency } from '@/contexts/CurrencyContext';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, AlertTriangle, FileText, Download } from 'lucide-react';
+import { Loader2, AlertTriangle, FileText, Download, MapPin, ClipboardList, Zap } from 'lucide-react';
 import { formatQuantity } from '@/lib/formatNumber';
 import { format } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
+import OrderDetailModal from './OrderDetailModal';
+
+interface PendingOrder {
+  id: string;
+  table_id: string | null;
+  table_number: number | null;
+  customer_name: string | null;
+  total: number;
+  waiter_id: string;
+  opened_at: string | null;
+  closed_at: string | null;
+  created_at: string | null;
+  guest_count: number | null;
+}
 
 interface CloseBarModalProps {
   open: boolean;
@@ -58,12 +73,16 @@ export function CloseBarModal({ open, onOpenChange, onSessionClosed }: CloseBarM
   const { user } = useAuth();
   const { toast } = useToast();
   
+  const navigate = useNavigate();
+  
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(false);
   const [canClose, setCanClose] = useState(false);
   const [blockReason, setBlockReason] = useState('');
   const [report, setReport] = useState<ClosingReport | null>(null);
   const [step, setStep] = useState<'check' | 'preview' | 'done'>('check');
+  const [pendingOrders, setPendingOrders] = useState<PendingOrder[]>([]);
+  const [resolveOrder, setResolveOrder] = useState<{ id: string; table_id: string | null; status: string; waiter_id: string; opened_at: string | null; closed_at: string | null; created_at: string | null; total: number | null; guest_count: number | null; customer_name: string | null } | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -71,31 +90,61 @@ export function CloseBarModal({ open, onOpenChange, onSessionClosed }: CloseBarM
     } else {
       setStep('check');
       setReport(null);
+      setPendingOrders([]);
+      setResolveOrder(null);
     }
   }, [open]);
 
   const checkCanClose = async () => {
     setChecking(true);
     try {
-      // Check for active orders
+      // Check for active orders with table info
       const { data: activeOrders, error: ordersError } = await supabase
         .from('orders')
-        .select('id')
+        .select('id, table_id, customer_name, total, status, waiter_id, opened_at, closed_at, created_at, guest_count')
         .eq('status', 'open');
 
       if (ordersError) throw ordersError;
 
-      // Check for occupied tables
-      const { data: occupiedTables, error: tablesError } = await supabase
-        .from('restaurant_tables')
-        .select('id')
-        .eq('status', 'occupied');
+      // Get table numbers for active orders
+      const pending: PendingOrder[] = [];
+      if (activeOrders && activeOrders.length > 0) {
+        const tableIds = activeOrders.filter(o => o.table_id).map(o => o.table_id!);
+        let tableMap: Record<string, number> = {};
+        if (tableIds.length > 0) {
+          const { data: tables } = await supabase
+            .from('restaurant_tables')
+            .select('id, table_number')
+            .in('id', tableIds);
+          tableMap = Object.fromEntries((tables || []).map(t => [t.id, t.table_number]));
+        }
+        for (const order of activeOrders) {
+          pending.push({
+            id: order.id,
+            table_id: order.table_id,
+            table_number: order.table_id ? (tableMap[order.table_id] ?? null) : null,
+            customer_name: order.customer_name,
+            total: Number(order.total) || 0,
+            waiter_id: order.waiter_id,
+            opened_at: order.opened_at,
+            closed_at: order.closed_at,
+            created_at: order.created_at,
+            guest_count: order.guest_count,
+          });
+        }
+      }
 
-      if (tablesError) throw tablesError;
+      setPendingOrders(pending);
 
-      if ((activeOrders && activeOrders.length > 0) || (occupiedTables && occupiedTables.length > 0)) {
+      if (pending.length > 0) {
         setCanClose(false);
-        setBlockReason(t('close_bar.blocked_message'));
+        if (pending.length === 1) {
+          const p = pending[0];
+          const label = p.table_number ? `${t('dining.table')} ${p.table_number}` : (p.customer_name || t('audit.unknown_user'));
+          setBlockReason(t('close_bar.single_pending').replace('{label}', label));
+        } else {
+          setBlockReason(t('close_bar.multiple_pending').replace('{count}', String(pending.length)));
+        }
       } else {
         setCanClose(true);
         setBlockReason('');
@@ -355,11 +404,70 @@ ${report.consumed_products.map(p =>
         )}
 
         {!checking && !canClose && step === 'check' && (
-          <div className="flex flex-col items-center gap-4 py-8">
+          <div className="flex flex-col items-center gap-4 py-6">
             <AlertTriangle className="h-12 w-12 text-destructive" />
             <p className="text-center text-destructive font-medium">
               {blockReason}
             </p>
+
+            {/* Pending orders list */}
+            {pendingOrders.length > 1 && (
+              <div className="w-full rounded-lg border p-3 space-y-2">
+                {pendingOrders.map((p) => {
+                  const label = p.table_number ? `${t('dining.table')} ${p.table_number}` : (p.customer_name || '—');
+                  return (
+                    <div key={p.id} className="flex justify-between items-center text-sm">
+                      <span>{label}</span>
+                      <span className="text-muted-foreground">{formatCurrency(p.total)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Action buttons */}
+            <div className="flex flex-wrap gap-2 justify-center pt-2">
+              {pendingOrders.length === 1 && (
+                <Button onClick={() => {
+                  const p = pendingOrders[0];
+                  setResolveOrder({
+                    id: p.id,
+                    table_id: p.table_id,
+                    status: 'open',
+                    waiter_id: p.waiter_id,
+                    opened_at: p.opened_at,
+                    closed_at: p.closed_at,
+                    created_at: p.created_at,
+                    total: p.total,
+                    guest_count: p.guest_count,
+                    customer_name: p.customer_name,
+                  });
+                }}>
+                  <Zap className="h-4 w-4 mr-2" />
+                  {t('close_bar.resolve_now')}
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                onClick={() => {
+                  onOpenChange(false);
+                  navigate('/salon');
+                }}
+              >
+                <MapPin className="h-4 w-4 mr-2" />
+                {t('close_bar.go_to_salon')}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  onOpenChange(false);
+                  navigate('/');
+                }}
+              >
+                <ClipboardList className="h-4 w-4 mr-2" />
+                {t('close_bar.view_active_orders')}
+              </Button>
+            </div>
           </div>
         )}
 
@@ -478,6 +586,24 @@ ${report.consumed_products.map(p =>
           )}
         </DialogFooter>
       </DialogContent>
+
+      {/* Inline OrderDetailModal for resolving a single pending order */}
+      {resolveOrder && (
+        <OrderDetailModal
+          order={resolveOrder}
+          open={!!resolveOrder}
+          onOpenChange={(isOpen) => {
+            if (!isOpen) {
+              setResolveOrder(null);
+              checkCanClose();
+            }
+          }}
+          onOrderClosed={() => {
+            setResolveOrder(null);
+            checkCanClose();
+          }}
+        />
+      )}
     </Dialog>
   );
 }
