@@ -221,40 +221,35 @@ export function CloseBarModal({ open, onOpenChange, onSessionClosed }: CloseBarM
 
       if (expiredError) throw expiredError;
 
-      // Get consumed products from today's stock history
-      const { data: stockHistory, error: historyError } = await supabase
-        .from('stock_history')
-        .select(`
-          item_id,
-          previous_stock,
-          new_stock,
-          items (name, unit)
-        `)
-        .eq('movement_type', 'sale')
-        .gte('created_at', today.toISOString());
+      // Get consumed products from today's closed order items
+      const closedOrderIds = (finishedOrders || []).map(o => o.id);
+      let consumedProducts: ConsumedProduct[] = [];
 
-      if (historyError) throw historyError;
+      if (closedOrderIds.length > 0) {
+        const { data: orderItems, error: itemsError } = await supabase
+          .from('order_items')
+          .select('dish_name, quantity, unit_price')
+          .in('order_id', closedOrderIds);
 
-      const consumedMap: Record<string, { name: string; unit: string; total: number }> = {};
-      for (const record of stockHistory || []) {
-        const item = record.items as { name: string; unit: string } | null;
-        if (!item) continue;
-        
-        const consumed = (record.previous_stock || 0) - record.new_stock;
-        if (consumed <= 0) continue;
+        if (itemsError) throw itemsError;
 
-        if (!consumedMap[record.item_id]) {
-          consumedMap[record.item_id] = { name: item.name, unit: item.unit, total: 0 };
+        const consumedMap: Record<string, { total_qty: number; total_value: number }> = {};
+        for (const item of orderItems || []) {
+          const key = item.dish_name;
+          if (!consumedMap[key]) {
+            consumedMap[key] = { total_qty: 0, total_value: 0 };
+          }
+          consumedMap[key].total_qty += item.quantity;
+          consumedMap[key].total_value += item.quantity * item.unit_price;
         }
-        consumedMap[record.item_id].total += consumed;
-      }
 
-      const consumedProducts: ConsumedProduct[] = Object.entries(consumedMap).map(([item_id, data]) => ({
-        item_id,
-        item_name: data.name,
-        total_consumed: data.total,
-        unit: data.unit,
-      }));
+        consumedProducts = Object.entries(consumedMap).map(([name, data]) => ({
+          item_id: name,
+          item_name: name,
+          total_consumed: data.total_qty,
+          unit: formatCurrency(data.total_value),
+        }));
+      }
 
       setReport({
         total_revenue: totalRevenue,
@@ -369,7 +364,7 @@ ${report.expired_items.map(i =>
 ${t('close_bar.consumed_products')}
 ─────────────────────────
 ${report.consumed_products.map(p => 
-  `${p.item_name}: ${formatQuantity(p.total_consumed)} ${p.unit}`
+  `${p.item_name} x${formatQuantity(p.total_consumed)} — ${p.unit}`
 ).join('\n') || t('close_bar.no_consumption')}
     `.trim();
 
@@ -526,11 +521,11 @@ ${report.consumed_products.map(p =>
             <div className="rounded-lg border p-4">
               <h3 className="font-semibold mb-3">{t('close_bar.consumed_products')}</h3>
               {report.consumed_products.length > 0 ? (
-                <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-2">
                   {report.consumed_products.map((product) => (
                     <div key={product.item_id} className="flex justify-between items-center text-sm">
-                      <span>{product.item_name}</span>
-                      <span className="font-medium">{formatQuantity(product.total_consumed)} {product.unit}</span>
+                      <span>{product.item_name} <span className="text-muted-foreground">x{formatQuantity(product.total_consumed)}</span></span>
+                      <span className="font-medium">{product.unit}</span>
                     </div>
                   ))}
                 </div>
