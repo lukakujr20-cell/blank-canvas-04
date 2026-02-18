@@ -24,6 +24,7 @@ import POS from "./pages/POS";
 import Financeiro from "./pages/Financeiro";
 
 import NotFound from "./pages/NotFound";
+import LandingPage from "./pages/LandingPage";
 
 const queryClient = new QueryClient();
 
@@ -38,7 +39,8 @@ const App = () => (
             <BrowserRouter>
               <AuthProvider>
                 <Routes>
-                  <Route path="/" element={<Navigate to="/auth" replace />} />
+                  <Route path="/" element={<LandingPage />} />
+                  <Route path="/landing" element={<LandingPage />} />
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/inventory" element={<Inventory />} />
