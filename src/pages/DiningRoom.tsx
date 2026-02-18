@@ -8,6 +8,7 @@ import { useCurrency } from '@/contexts/CurrencyContext';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import BillReviewModal from '@/components/BillReviewModal';
 import TableManagementModal from '@/components/TableManagementModal';
+import { TableReservationModal } from '@/components/TableReservationModal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -50,9 +51,13 @@ import {
   Store,
   Settings2,
   CreditCard,
+  CalendarIcon,
+  Lock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+import { format, isToday } from 'date-fns';
+
 
 interface RestaurantTable {
   id: string;
@@ -136,6 +141,13 @@ export default function DiningRoom() {
   const [items, setItems] = useState<Item[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [restaurantId, setRestaurantId] = useState<string | null>(null);
+
+  // Reservation state
+  const [reservations, setReservations] = useState<any[]>([]);
+  const [reservationModalOpen, setReservationModalOpen] = useState(false);
+  const [sessionClosedAlertOpen, setSessionClosedAlertOpen] = useState(false);
+  const [todayReservationAlert, setTodayReservationAlert] = useState<any | null>(null);
   
   // Modal states
   const [selectedTable, setSelectedTable] = useState<RestaurantTable | null>(null);
@@ -161,6 +173,7 @@ export default function DiningRoom() {
   const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
   const [currentOrderItems, setCurrentOrderItems] = useState<OrderItem[]>([]);
   const [dishQuantities, setDishQuantities] = useState<Record<string, number>>({});
+
 
   useEffect(() => {
     fetchData();
@@ -208,7 +221,7 @@ export default function DiningRoom() {
 
   const fetchData = async () => {
     try {
-      const [tablesRes, ordersRes, orderItemsRes, dishesRes, sheetsRes, itemsRes, profilesRes] = await Promise.all([
+      const [tablesRes, ordersRes, orderItemsRes, dishesRes, sheetsRes, itemsRes, profilesRes, profileRes] = await Promise.all([
         supabase.from('restaurant_tables').select('*').order('table_number'),
         supabase.from('orders').select('*').eq('status', 'open'),
         supabase.from('order_items').select('*'),
@@ -216,6 +229,7 @@ export default function DiningRoom() {
         supabase.from('technical_sheets').select('*'),
         supabase.from('items').select('id, name, unit, current_stock, units_per_package, recipe_units_per_consumption').is('deleted_at', null),
         supabase.from('profiles').select('id, full_name'),
+        user ? supabase.from('profiles').select('restaurant_id').eq('id', user.id).single() : Promise.resolve({ data: null, error: null }),
       ]);
 
       if (tablesRes.error) throw tablesRes.error;
@@ -225,6 +239,8 @@ export default function DiningRoom() {
       if (sheetsRes.error) throw sheetsRes.error;
       if (itemsRes.error) throw itemsRes.error;
 
+      const rId = profileRes.data?.restaurant_id || null;
+      setRestaurantId(rId);
       setTables(tablesRes.data || []);
       setOrders(ordersRes.data || []);
       setOrderItems(orderItemsRes.data || []);
@@ -232,6 +248,25 @@ export default function DiningRoom() {
       setTechnicalSheets(sheetsRes.data || []);
       setItems(itemsRes.data || []);
       setProfiles(profilesRes.data || []);
+
+      // Load active reservations
+      if (rId) {
+        const { data: resData } = await supabase
+          .from('table_reservations' as any)
+          .select('*')
+          .eq('restaurant_id', rId)
+          .eq('status', 'active')
+          .order('reserved_at');
+        setReservations(resData || []);
+
+        // Check for today's reservations alert (only when opening session)
+        if (currentSession) {
+          const todayRes = (resData || []).find((r: any) => isToday(new Date(r.reserved_at)));
+          if (todayRes && !todayReservationAlert) {
+            setTodayReservationAlert(todayRes);
+          }
+        }
+      }
     } catch (error) {
       console.error('Error fetching data:', error);
       toast({
@@ -276,6 +311,12 @@ export default function DiningRoom() {
     setSelectedTable(table);
     setTableStatus(table.status);
     
+    // If session is closed: only allow reservations
+    if (!currentSession) {
+      setReservationModalOpen(true);
+      return;
+    }
+
     const existingOrder = getTableOrder(table.id);
     if (existingOrder) {
       // Occupied table with order → open POS directly
@@ -286,6 +327,7 @@ export default function DiningRoom() {
       setTableOptionsOpen(true);
     }
   };
+
 
   const handleTableStatusChange = async () => {
     if (!selectedTable || !user) return;
@@ -676,6 +718,42 @@ export default function DiningRoom() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        {/* Session Closed Banner */}
+        {!currentSession && (
+          <div className="flex items-center gap-3 rounded-lg border border-warning bg-warning/10 px-4 py-3">
+            <Lock className="h-5 w-5 shrink-0 text-warning" />
+            <div className="flex-1">
+              <p className="font-semibold text-warning-foreground">{t('dining.session_closed_warning')}</p>
+              <p className="text-sm text-muted-foreground">{t('dining.session_closed_desc')}</p>
+            </div>
+            <Badge variant="secondary" className="shrink-0">{t('dining.only_reservations')}</Badge>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => navigate('/settings')}
+              className="shrink-0"
+            >
+              {t('dining.go_to_settings')}
+            </Button>
+          </div>
+        )}
+
+        {/* Today Reservation Alert */}
+        {todayReservationAlert && currentSession && (
+          <div className="flex items-center gap-3 rounded-lg border border-primary bg-primary/10 px-4 py-3">
+            <CalendarIcon className="h-5 w-5 shrink-0 text-primary" />
+            <p className="flex-1 text-sm font-medium">
+              {t('reservation.today_alert')
+                .replace('{table}', tables.find(tb => tb.id === todayReservationAlert.table_id)?.table_number?.toString() || '?')
+                .replace('{time}', format(new Date(todayReservationAlert.reserved_at), 'HH:mm'))}
+              {' '}— <span className="font-bold">{todayReservationAlert.customer_name}</span>
+            </p>
+            <Button size="sm" variant="ghost" onClick={() => setTodayReservationAlert(null)}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -695,14 +773,17 @@ export default function DiningRoom() {
                 {t('dining.manage_tables')}
               </Button>
             )}
-            <Button 
-              size="lg" 
-              className="h-14 text-lg gap-2"
-              onClick={() => setCounterOrderOpen(true)}
-            >
-              <Store className="h-5 w-5" />
-              {t('dining.new_counter_order')}
-            </Button>
+            {/* Counter Order button - only when session is open */}
+            {currentSession && (
+              <Button 
+                size="lg" 
+                className="h-14 text-lg gap-2"
+                onClick={() => setCounterOrderOpen(true)}
+              >
+                <Store className="h-5 w-5" />
+                {t('dining.new_counter_order')}
+              </Button>
+            )}
           </div>
         </div>
 
@@ -714,7 +795,7 @@ export default function DiningRoom() {
               {counterOrders.map((order) => (
                 <Card
                   key={order.id}
-                  className="cursor-pointer border-blue-500 bg-blue-50 transition-all hover:scale-105 hover:shadow-lg dark:bg-blue-950/20"
+                  className="cursor-pointer border-primary/50 bg-primary/5 transition-all hover:scale-105 hover:shadow-lg"
                   onClick={() => {
                     setCurrentOrder(order);
                     setCurrentOrderItems(getOrderItems(order.id));
@@ -724,7 +805,7 @@ export default function DiningRoom() {
                   }}
                 >
                   <CardContent className="flex flex-col items-center justify-center p-4">
-                    <Store className="h-10 w-10 text-blue-600" />
+                    <Store className="h-10 w-10 text-primary" />
                     <p className="mt-2 text-center text-sm font-medium">
                       {order.customer_name || 'Balcão'}
                     </p>
@@ -744,42 +825,70 @@ export default function DiningRoom() {
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {tables.map((table) => {
               const order = getTableOrder(table.id);
+              const tableReservation = reservations.find(r => r.table_id === table.id);
+              // When session is closed, a reserved table also shows as "reserved" (blue)
+              const effectiveStatus = (!currentSession && tableReservation) ? 'booked' : table.status;
               
               return (
                 <Card
                   key={table.id}
                   className={cn(
                     'cursor-pointer transition-all hover:scale-105 hover:shadow-lg',
-                    getStatusColor(table.status)
+                    effectiveStatus === 'booked'
+                      ? 'border-[hsl(var(--primary))] bg-primary/5'
+                      : getStatusColor(table.status),
+                    !currentSession && table.status !== 'occupied' && 'opacity-80'
                   )}
                   onClick={() => handleTableClick(table)}
                 >
                   <CardContent className="flex flex-col items-center justify-center p-4">
                     <div className={cn(
                       'flex h-14 w-14 items-center justify-center rounded-full text-xl font-bold',
-                      table.status === 'free' ? 'bg-green-500 text-white' 
-                        : table.status === 'occupied' ? 'bg-red-500 text-white' 
-                        : 'bg-yellow-500 text-white'
+                      effectiveStatus === 'booked'
+                        ? 'bg-primary text-primary-foreground'
+                        : table.status === 'free' ? 'bg-success text-success-foreground' 
+                        : table.status === 'occupied' ? 'bg-destructive text-destructive-foreground' 
+                        : 'bg-warning text-warning-foreground'
                     )}>
-                      {table.table_number}
+                      {effectiveStatus === 'booked'
+                        ? <CalendarIcon className="h-6 w-6" />
+                        : table.table_number}
                     </div>
+
+                    {/* Show table number below icon when booked */}
+                    {effectiveStatus === 'booked' && (
+                      <p className="mt-1 text-xs font-bold text-primary">{table.table_number}</p>
+                    )}
                     
                     <div className="mt-2 flex items-center gap-1 text-sm text-muted-foreground">
                       <Users className="h-4 w-4" />
                       <span>{order?.guest_count || table.capacity}</span>
                     </div>
                     
-                    <Badge 
-                      variant={getStatusBadgeVariant(table.status)}
-                      className="mt-2"
-                    >
-                      {getStatusLabel(table.status)}
-                    </Badge>
+                    {effectiveStatus === 'booked' && tableReservation ? (
+                      <div className="mt-2 text-center">
+                        <Badge variant="default" className="text-xs">{t('reservation.title')}</Badge>
+                        <p className="mt-1 text-xs font-medium truncate max-w-[80px]">{tableReservation.customer_name}</p>
+                        <p className="text-xs text-muted-foreground">{format(new Date(tableReservation.reserved_at), 'HH:mm')}</p>
+                      </div>
+                    ) : (
+                      <Badge 
+                        variant={getStatusBadgeVariant(table.status)}
+                        className="mt-2"
+                      >
+                        {getStatusLabel(table.status)}
+                      </Badge>
+                    )}
                     
                     {order && (
                       <p className="mt-2 text-sm font-bold text-primary">
                         {formatCurrency(order.total || 0)}
                       </p>
+                    )}
+
+                    {/* Lock icon overlay when session is closed and table is free */}
+                    {!currentSession && table.status === 'free' && !tableReservation && (
+                      <Lock className="mt-1 h-3 w-3 text-muted-foreground" />
                     )}
                   </CardContent>
                 </Card>
@@ -787,6 +896,7 @@ export default function DiningRoom() {
             })}
           </div>
         </div>
+
 
         {/* Table Options Modal */}
         <Dialog open={tableOptionsOpen} onOpenChange={setTableOptionsOpen}>
@@ -1131,8 +1241,24 @@ export default function DiningRoom() {
           onTablesUpdated={fetchData}
         />
 
+        {/* Reservation Modal (shown when session is closed and user clicks a table) */}
+        {selectedTable && restaurantId && (
+          <TableReservationModal
+            open={reservationModalOpen}
+            onOpenChange={(open) => {
+              setReservationModalOpen(open);
+              if (!open) setSelectedTable(null);
+            }}
+            tableId={selectedTable.id}
+            tableNumber={selectedTable.table_number}
+            restaurantId={restaurantId}
+            onReserved={fetchData}
+          />
+        )}
+
       </div>
 
     </DashboardLayout>
   );
 }
+
