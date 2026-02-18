@@ -21,13 +21,18 @@ serve(async (req) => {
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
-
-    // Verify the user's token
+    // Verify token using anon client (supports ES256 used by Lovable Cloud)
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user: requester }, error: userError } = await supabaseAdmin.auth.getUser(token);
+    const supabaseAnon = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user: requester }, error: userError } = await supabaseAnon.auth.getUser(token);
+
+    // Admin client for privileged operations
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
 
     if (userError || !requester) {
       return new Response(
