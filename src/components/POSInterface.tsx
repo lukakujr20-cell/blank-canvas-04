@@ -70,6 +70,7 @@ import {
   Layers,
   Pencil,
   MessageSquare,
+  DoorOpen,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -806,6 +807,34 @@ export default function POSInterface({
     }
   };
 
+  // ── Release Table (No Consumption) ──
+  const releaseTableNoConsumption = async () => {
+    if (!tableId) return;
+    setSending(true);
+    try {
+      // Cancel the order silently
+      await supabase.from('order_items').delete().eq('order_id', orderId);
+      await supabase.from('orders').update({
+        status: 'cancelled',
+        closed_at: new Date().toISOString(),
+        total: 0,
+      }).eq('id', orderId);
+      // Free the table immediately
+      await supabase
+        .from('restaurant_tables')
+        .update({ status: 'free', current_order_id: null })
+        .eq('id', tableId);
+      toast({ title: t('dining.table_released') });
+      onOrderUpdated();
+      onClose();
+    } catch (error) {
+      console.error('Error releasing table:', error);
+      toast({ title: t('common.error'), variant: 'destructive' });
+    } finally {
+      setSending(false);
+    }
+  };
+
   // ── Cart Content (shared between sidebar and drawer) ──
   const cartContent = (
     <>
@@ -932,15 +961,29 @@ export default function POSInterface({
           <span>{t('pos.new_total')}</span>
           <span>{formatCurrency(liveTotal + cartTotal)}</span>
         </div>
-        <Button
-          className="w-full h-14 text-base font-bold rounded-xl shadow-lg"
-          size="lg"
-          disabled={cart.length === 0 || sending}
-          onClick={sendToKitchen}
-        >
-          <Send className="mr-2 h-5 w-5" />
-          {sending ? t('pos.sending') : t('pos.send_to_kitchen')}
-        </Button>
+        {/* Main action button: Send to Kitchen OR Release Table (no consumption) */}
+        {cart.length === 0 && liveTotal === 0 && tableId ? (
+          <Button
+            variant="outline"
+            className="w-full h-14 text-base font-bold rounded-xl border-muted-foreground/40 text-muted-foreground hover:border-destructive hover:text-destructive"
+            size="lg"
+            disabled={sending}
+            onClick={releaseTableNoConsumption}
+          >
+            <DoorOpen className="mr-2 h-5 w-5" />
+            {sending ? t('common.saving') : t('dining.release_table_no_consumption')}
+          </Button>
+        ) : (
+          <Button
+            className="w-full h-14 text-base font-bold rounded-xl shadow-lg"
+            size="lg"
+            disabled={cart.length === 0 || sending}
+            onClick={sendToKitchen}
+          >
+            <Send className="mr-2 h-5 w-5" />
+            {sending ? t('pos.sending') : t('pos.send_to_kitchen')}
+          </Button>
+        )}
         {liveTotal > 0 && cart.length === 0 && (
           <Button
             variant="outline"
