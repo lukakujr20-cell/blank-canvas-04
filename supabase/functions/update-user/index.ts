@@ -24,24 +24,24 @@ serve(async (req) => {
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Verify token using anon client (supports ES256 used by Lovable Cloud)
+    // Verify token using anon client with getClaims (supports ES256 used by Lovable Cloud)
     const token = authHeader.replace("Bearer ", "");
     const supabaseAnon = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
-    const { data: { user: requester }, error: userError } = await supabaseAnon.auth.getUser(token);
+    const { data: claimsData, error: claimsError } = await supabaseAnon.auth.getClaims(token);
 
     // Admin client for privileged operations
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
 
-    if (userError || !requester) {
+    if (claimsError || !claimsData?.claims) {
       return new Response(
         JSON.stringify({ error: "unauthorized", message: "Invalid token" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const requestingUserId = requester.id;
+    const requestingUserId = claimsData.claims.sub;
 
     // Get requesting user's role
     const { data: requestingUserRole, error: roleError } = await supabaseAdmin
