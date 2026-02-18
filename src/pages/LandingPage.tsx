@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 type Lang = "pt" | "en";
+type Region = "BR" | "EU" | "US";
 
 const copy = {
   pt: {
@@ -90,7 +91,7 @@ const copy = {
     pricing_sub: "Sem taxa de adesão. Cancele quando quiser.",
     plans: [
       {
-        name: "Essencial",
+        name: "Mensal",
         for: "1 unidade, até 5 usuários",
         price: "R$197",
         period: "/mês",
@@ -98,19 +99,29 @@ const copy = {
         cta: "Começar Agora",
         highlight: false,
         badge: null,
+        checkoutLinks: {
+          BR: "https://buy.stripe.com/aFadR3cbDfwQ4jtetXfrW00",
+          EU: "",
+          US: "",
+        },
       },
       {
-        name: "Operador",
+        name: "Semestral",
         for: "1 unidade, operação completa",
         price: "R$397",
         period: "/mês",
         features: ["Frente de loja ✅", "KDS Cozinha ✅", "Estoque inteligente ✅", "Financeiro e CMV ✅", "Multi-unidade ❌", "Chat + Email prioritário"],
-        cta: "Escolher Operador",
+        cta: "Escolher Semestral",
         highlight: true,
         badge: "Mais escolhido",
+        checkoutLinks: {
+          BR: "https://buy.stripe.com/8x2aER1wZdoI6rB85zfrW01",
+          EU: "",
+          US: "",
+        },
       },
       {
-        name: "Rede",
+        name: "Anual",
         for: "Múltiplas unidades",
         price: "R$697",
         period: "/mês",
@@ -118,6 +129,11 @@ const copy = {
         cta: "Falar com Vendas",
         highlight: false,
         badge: null,
+        checkoutLinks: {
+          BR: "https://buy.stripe.com/4gM00d7Vn0BWaHRbhLfrW02",
+          EU: "",
+          US: "",
+        },
       },
     ],
     faq_title: "Perguntas frequentes",
@@ -231,7 +247,7 @@ const copy = {
     pricing_sub: "No setup fee. Cancel anytime.",
     plans: [
       {
-        name: "Essential",
+        name: "Monthly",
         for: "1 unit, up to 5 users",
         price: "€97",
         period: "/month",
@@ -239,19 +255,29 @@ const copy = {
         cta: "Start Now",
         highlight: false,
         badge: null,
+        checkoutLinks: {
+          BR: "https://buy.stripe.com/aFadR3cbDfwQ4jtetXfrW00",
+          EU: "",
+          US: "",
+        },
       },
       {
-        name: "Operator",
+        name: "Biannual",
         for: "1 unit, full operation",
         price: "€197",
         period: "/month",
         features: ["Floor ✅", "Kitchen KDS ✅", "Smart Inventory ✅", "Financials & CMV ✅", "Multi-unit ❌", "Chat + Priority email"],
-        cta: "Choose Operator",
+        cta: "Choose Biannual",
         highlight: true,
         badge: "Most popular",
+        checkoutLinks: {
+          BR: "https://buy.stripe.com/8x2aER1wZdoI6rB85zfrW01",
+          EU: "",
+          US: "",
+        },
       },
       {
-        name: "Network",
+        name: "Annual",
         for: "Multiple units",
         price: "€347",
         period: "/month",
@@ -259,6 +285,11 @@ const copy = {
         cta: "Talk to Sales",
         highlight: false,
         badge: null,
+        checkoutLinks: {
+          BR: "https://buy.stripe.com/4gM00d7Vn0BWaHRbhLfrW02",
+          EU: "",
+          US: "",
+        },
       },
     ],
     faq_title: "Frequently asked questions",
@@ -302,10 +333,20 @@ const iconMap: Record<string, React.ReactNode> = {
 export default function LandingPage() {
   const navigate = useNavigate();
   const [lang, setLang] = useState<Lang>("pt");
+  const [region, setRegion] = useState<Region>("BR");
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const c = copy[lang];
 
   const handleCta = () => navigate("/auth");
+
+  const handlePlanCta = (checkoutLinks: { BR: string; EU: string; US: string }) => {
+    const link = checkoutLinks[region];
+    if (link) {
+      window.open(link, "_blank", "noopener,noreferrer");
+    } else {
+      navigate("/auth");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[hsl(220,20%,8%)] text-[hsl(60,9%,97%)] font-sans antialiased">
@@ -318,13 +359,37 @@ export default function LandingPage() {
             </div>
             <span className="text-lg font-bold tracking-tight">RestaurantOS</span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            {/* Region selector */}
+            <div className="flex rounded-full border border-[hsl(220,20%,25%)] p-0.5 text-xs">
+              {(["BR", "EU", "US"] as Region[]).map((r) => (
+                <button
+                  key={r}
+                  onClick={() => setRegion(r)}
+                  className={`rounded-full px-2.5 py-1 font-medium transition-all ${
+                    region === r
+                      ? "bg-[hsl(37,92%,50%)] text-[hsl(220,20%,8%)]"
+                      : "text-[hsl(60,9%,60%)] hover:text-[hsl(60,9%,90%)]"
+                  }`}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+            {/* Lang toggle */}
             <button
               onClick={() => setLang(lang === "pt" ? "en" : "pt")}
               className="flex items-center gap-1.5 rounded-full border border-[hsl(220,20%,25%)] px-3 py-1.5 text-xs text-[hsl(60,9%,70%)] transition hover:border-[hsl(37,92%,50%)] hover:text-[hsl(37,92%,50%)]"
             >
               <Globe className="h-3.5 w-3.5" />
               {lang === "pt" ? "EN" : "PT"}
+            </button>
+            {/* Login button */}
+            <button
+              onClick={() => navigate("/auth")}
+              className="rounded-full border border-[hsl(220,20%,25%)] px-3 py-1.5 text-xs text-[hsl(60,9%,70%)] transition hover:border-[hsl(60,9%,50%)] hover:text-[hsl(60,9%,97%)]"
+            >
+              Login
             </button>
             <Button
               onClick={handleCta}
@@ -518,7 +583,7 @@ export default function LandingPage() {
                   })}
                 </ul>
                 <button
-                  onClick={handleCta}
+                  onClick={() => handlePlanCta(plan.checkoutLinks)}
                   className={`w-full rounded-xl py-3 text-sm font-semibold transition-all ${
                     plan.highlight
                       ? "bg-[hsl(37,92%,50%)] text-[hsl(220,20%,8%)] hover:bg-[hsl(37,92%,45%)]"
