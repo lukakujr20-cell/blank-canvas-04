@@ -531,6 +531,33 @@ const translations: Record<Language, Record<string, string>> = {
     'dining.update_error': 'Erro ao atualizar mesa',
     'dining.delete_error': 'Erro ao excluir mesa',
 
+    // Session lock
+    'dining.session_closed_warning': 'Turno Fechado',
+    'dining.session_closed_desc': 'Abra o turno em Configurações para iniciar as vendas.',
+    'dining.go_to_settings': 'Ir para Configurações',
+    'dining.only_reservations': 'Apenas Reservas',
+
+    // Reservations
+    'reservation.title': 'Reserva',
+    'reservation.description': 'Preencha os dados para reservar esta mesa',
+    'reservation.customer_name': 'Nome do Cliente',
+    'reservation.customer_name_placeholder': 'Ex: João Silva',
+    'reservation.date': 'Data',
+    'reservation.pick_date': 'Selecione a data',
+    'reservation.time': 'Horário',
+    'reservation.party_size': 'Número de Pessoas',
+    'reservation.notes': 'Observações (opcional)',
+    'reservation.notes_placeholder': 'Ex: Aniversário, alergia a glúten...',
+    'reservation.confirm': 'Confirmar Reserva',
+    'reservation.success': 'Mesa reservada com sucesso!',
+    'reservation.name_required': 'Por favor, informe o nome do cliente.',
+    'reservation.date_required': 'Por favor, selecione uma data.',
+    'reservation.today_alert': 'Existe uma reserva para a Mesa {table} às {time}.',
+    'reservation.booked_by': 'Reservado por',
+    'reservation.for': 'para',
+    'reservation.at': 'às',
+    'reservation.people': 'pessoas',
+
     // Dashboard - Active Orders
     'dashboard.active_orders': 'Pedidos Ativos',
     'dashboard.no_active_orders': 'Nenhum pedido em aberto',
@@ -1325,6 +1352,33 @@ const translations: Record<Language, Record<string, string>> = {
     'dining.update_error': 'Error al actualizar mesa',
     'dining.delete_error': 'Error al eliminar mesa',
 
+    // Session lock
+    'dining.session_closed_warning': 'Turno Cerrado',
+    'dining.session_closed_desc': 'Abra el turno en Configuración para iniciar las ventas.',
+    'dining.go_to_settings': 'Ir a Configuración',
+    'dining.only_reservations': 'Solo Reservas',
+
+    // Reservations
+    'reservation.title': 'Reserva',
+    'reservation.description': 'Complete los datos para reservar esta mesa',
+    'reservation.customer_name': 'Nombre del Cliente',
+    'reservation.customer_name_placeholder': 'Ej: Juan García',
+    'reservation.date': 'Fecha',
+    'reservation.pick_date': 'Seleccione la fecha',
+    'reservation.time': 'Horario',
+    'reservation.party_size': 'Número de Personas',
+    'reservation.notes': 'Observaciones (opcional)',
+    'reservation.notes_placeholder': 'Ej: Cumpleaños, alergia al gluten...',
+    'reservation.confirm': 'Confirmar Reserva',
+    'reservation.success': '¡Mesa reservada con éxito!',
+    'reservation.name_required': 'Por favor, ingrese el nombre del cliente.',
+    'reservation.date_required': 'Por favor, seleccione una fecha.',
+    'reservation.today_alert': 'Existe una reserva para la Mesa {table} a las {time}.',
+    'reservation.booked_by': 'Reservado por',
+    'reservation.for': 'para',
+    'reservation.at': 'a las',
+    'reservation.people': 'personas',
+
     // Dashboard - Active Orders
     'dashboard.active_orders': 'Pedidos Activos',
     'dashboard.no_active_orders': 'Ningún pedido abierto',
@@ -2118,6 +2172,33 @@ const translations: Record<Language, Record<string, string>> = {
     'dining.create_error': 'Error creating table',
     'dining.update_error': 'Error updating table',
     'dining.delete_error': 'Error deleting table',
+
+    // Session lock
+    'dining.session_closed_warning': 'Shift Closed',
+    'dining.session_closed_desc': 'Open the shift in Settings to start sales.',
+    'dining.go_to_settings': 'Go to Settings',
+    'dining.only_reservations': 'Bookings Only',
+
+    // Reservations
+    'reservation.title': 'Booking',
+    'reservation.description': 'Fill in the details to reserve this table',
+    'reservation.customer_name': 'Customer Name',
+    'reservation.customer_name_placeholder': 'E.g.: John Smith',
+    'reservation.date': 'Date',
+    'reservation.pick_date': 'Select date',
+    'reservation.time': 'Time',
+    'reservation.party_size': 'Party Size',
+    'reservation.notes': 'Notes (optional)',
+    'reservation.notes_placeholder': 'E.g.: Birthday, gluten allergy...',
+    'reservation.confirm': 'Confirm Booking',
+    'reservation.success': 'Table booked successfully!',
+    'reservation.name_required': 'Please provide the customer name.',
+    'reservation.date_required': 'Please select a date.',
+    'reservation.today_alert': 'There is a booking for Table {table} at {time}.',
+    'reservation.booked_by': 'Booked by',
+    'reservation.for': 'for',
+    'reservation.at': 'at',
+    'reservation.people': 'people',
 
     'dashboard.active_orders': 'Active Orders',
     'dashboard.no_active_orders': 'No open orders',
