@@ -4,8 +4,7 @@ import { ChefHat, BarChart3, Package, ClipboardList, Shield, Users, Check, X, Ch
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-type Lang = "pt" | "en";
-type Region = "BR" | "EU" | "US";
+type Lang = "pt" | "en" | "es";
 
 const copy = {
   pt: {
@@ -322,6 +321,64 @@ const copy = {
   },
 };
 
+// Spanish translations
+const esCopy = {
+  nav_cta: "Prueba Gratis",
+  hero_badge: "Gestión Inteligente para Restaurantes",
+  hero_title: "Su restaurante está perdiendo en promedio",
+  hero_title_accent: "€550 por mes",
+  hero_title_end: "en desperdicios. Le mostramos exactamente dónde.",
+  hero_sub: "Sistema completo de gestión — inventario, cocina y finanzas integrados — que cierra la caja sin sorpresas.",
+  hero_cta: "Prueba gratis por 14 días — sin tarjeta",
+  hero_social: "Más de 200 restaurantes confían en el sistema",
+  problem_title: "¿Le suena esta escena?",
+  problem_body: "Es viernes por la noche, el local está lleno, y el cocinero le avisa que se acabó la salsa de la casa. El camarero anotó mal el pedido de la mesa 7. Y mañana por la mañana pasará 2 horas intentando cerrar el financiero en una hoja de cálculo que no cuadra.",
+  problem_conclusion: "No es falta de esfuerzo. Es falta de sistema.",
+  solution_title: "Un sistema. Todo integrado.",
+  solution_sub: "Del pedido al financiero, sin ruido en medio.",
+  modules: [
+    { icon: "utensils", title: "Sala y Servicio", what: "Pedidos digitales que llegan directamente a la cocina, sin intermediarios.", how: "Interfaz optimizada para camareros — toque, confirme, enviado.", result: "Clientes atendidos hasta un 40% más rápido en hora punta. Cero retrabajos." },
+    { icon: "monitor", title: "KDS — Panel de Cocina", what: "Pantalla de preparación con priorización automática por tiempo y mesa.", how: "Organiza la cola por llegada, urgencia y destino (cocina o barra).", result: "Su cocina deja de trabajar en el caos y empieza a trabajar en secuencia." },
+    { icon: "package", title: "Inventario Inteligente", what: "Descuento automático de ingredientes en cada pedido.", how: "Alertas configurables de inventario mínimo con lista de compras generada con un clic.", result: "Deje de comprar por intuición y empiece a comprar con datos." },
+    { icon: "chart", title: "Panel del Propietario", what: "Beneficio neto del día, CMV por plato, coste de personal y ticket medio.", how: "Todo en una pantalla. Acceda desde el móvil a las 22h.", result: "Sepa exactamente cómo fue el día antes de dormir." },
+    { icon: "shield", title: "Auditoría y Control", what: "Cada acción queda registrada con usuario, hora e IP.", how: "Informe de inconsistencias con línea de tiempo completa.", result: "Para operaciones con varios empleados en caja, es su capa de protección contra fraudes." },
+  ],
+  social_title: "Resultados reales de quienes ya usan el sistema",
+  social_sub: "Cifras verificadas de los primeros 60 días de operación.",
+  testimonials: [
+    { quote: "Reduje €800 de desperdicio en el primer mes. Ahora sé exactamente qué pedir cada semana.", name: "Carlos Martínez", place: "Taberna Artesanal, Madrid", metric: "−€800/mes" },
+    { quote: "Cerré el mes sin hoja de cálculo por primera vez en 6 años. El sistema lo hizo todo automáticamente.", name: "Laura Sánchez", place: "Pizzería Centrale, Barcelona", metric: "2h ahorradas/día" },
+    { quote: "El KDS transformó mi cocina. Antes salía algún pedido equivocado cada viernes. Ya no.", name: "Miguel Torres", place: "Bistró Central, Valencia", metric: "Cero errores en 45 días" },
+  ],
+  stat1_num: "18%",
+  stat1_label: "reducción media en compras innecesarias en los primeros 60 días",
+  stat2_num: "40%",
+  stat2_label: "más rapidez en el servicio con KDS activo",
+  stat3_num: "2h",
+  stat3_label: "ahorradas por día en el cierre financiero",
+  pricing_title: "Elija el plan adecuado para su operación",
+  pricing_sub: "Sin cuota de alta. Cancele cuando quiera.",
+  plans: [
+    { name: "Mensual", for: "1 local, hasta 5 usuarios", price: "€97", period: "/mes", features: ["Sala ✅", "KDS Cocina ❌", "Inventario inteligente ❌", "Finanzas y CMV ❌", "Multi-local ❌", "Soporte por chat"], cta: "Empezar Ahora", highlight: false, badge: null, checkoutLinks: { BR: "https://buy.stripe.com/aFadR3cbDfwQ4jtetXfrW00", EU: "", US: "" } },
+    { name: "Semestral", for: "1 local, operación completa", price: "€197", period: "/mes", features: ["Sala ✅", "KDS Cocina ✅", "Inventario inteligente ✅", "Finanzas y CMV ✅", "Multi-local ❌", "Chat + Email prioritario"], cta: "Elegir Semestral", highlight: true, badge: "Más elegido", checkoutLinks: { BR: "https://buy.stripe.com/8x2aER1wZdoI6rB85zfrW01", EU: "", US: "" } },
+    { name: "Anual", for: "Varios locales", price: "€347", period: "/mes", features: ["Sala ✅", "KDS Cocina ✅", "Inventario inteligente ✅", "Finanzas y CMV ✅", "Multi-local ✅", "Gestor de cuenta dedicado"], cta: "Hablar con Ventas", highlight: false, badge: null, checkoutLinks: { BR: "https://buy.stripe.com/4gM00d7Vn0BWaHRbhLfrW02", EU: "", US: "" } },
+  ],
+  faq_title: "Preguntas frecuentes",
+  faqs: [
+    { q: "Mi equipo no es tecnológico. ¿Van a poder usarlo?", a: "Sí. La interfaz fue diseñada para cocineros y camareros, no para programadores. La formación completa dura menos de 2 horas y nuestro equipo acompaña los primeros días." },
+    { q: "¿Y si quiero cancelar?", a: "Sin penalización, sin burocracia. Cancele con un clic y sus datos estarán disponibles para exportar durante 30 días." },
+    { q: "¿Funciona sin internet?", a: "El módulo de caja y KDS tiene modo sin conexión. Los datos se sincronizan automáticamente cuando vuelve la conexión." },
+    { q: "¿Necesito cambiar mi equipamiento actual?", a: "No. Funciona en cualquier tablet Android o iPad, PC con Windows o Mac, y móvil." },
+    { q: "¿Cómo funciona la migración de lo que uso ahora?", a: "Nuestro equipo realiza la migración de su carta y registros en 48 horas. No empieza desde cero." },
+  ],
+  final_cta_title: "¿Listo para cerrar la caja sin sorpresas?",
+  final_cta_sub: "14 días gratis. Sin tarjeta. Soporte incluido.",
+  final_cta_btn: "Empezar ahora — es gratis",
+  footer_rights: "Todos los derechos reservados.",
+};
+
+const allCopy = { ...copy, es: esCopy };
+
 const iconMap: Record<string, React.ReactNode> = {
   utensils: <Utensils className="h-6 w-6" />,
   monitor: <ClipboardList className="h-6 w-6" />,
@@ -333,14 +390,21 @@ const iconMap: Record<string, React.ReactNode> = {
 export default function LandingPage() {
   const navigate = useNavigate();
   const [lang, setLang] = useState<Lang>("pt");
-  const [region, setRegion] = useState<Region>("BR");
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const c = copy[lang];
+  const c = allCopy[lang];
 
   const handleCta = () => navigate("/auth");
 
+  const cycleLang = () => {
+    if (lang === "pt") setLang("en");
+    else if (lang === "en") setLang("es");
+    else setLang("pt");
+  };
+
+  const langLabel = lang === "pt" ? "EN" : lang === "en" ? "ES" : "PT";
+
   const handlePlanCta = (checkoutLinks: { BR: string; EU: string; US: string }) => {
-    const link = checkoutLinks[region];
+    const link = checkoutLinks["BR"];
     if (link) {
       window.open(link, "_blank", "noopener,noreferrer");
     } else {
@@ -360,29 +424,13 @@ export default function LandingPage() {
             <span className="text-lg font-bold tracking-tight">RestaurantOS</span>
           </div>
           <div className="flex items-center gap-2">
-            {/* Region selector */}
-            <div className="flex rounded-full border border-[hsl(220,20%,25%)] p-0.5 text-xs">
-              {(["BR", "EU", "US"] as Region[]).map((r) => (
-                <button
-                  key={r}
-                  onClick={() => setRegion(r)}
-                  className={`rounded-full px-2.5 py-1 font-medium transition-all ${
-                    region === r
-                      ? "bg-[hsl(37,92%,50%)] text-[hsl(220,20%,8%)]"
-                      : "text-[hsl(60,9%,60%)] hover:text-[hsl(60,9%,90%)]"
-                  }`}
-                >
-                  {r}
-                </button>
-              ))}
-            </div>
             {/* Lang toggle */}
             <button
-              onClick={() => setLang(lang === "pt" ? "en" : "pt")}
+              onClick={cycleLang}
               className="flex items-center gap-1.5 rounded-full border border-[hsl(220,20%,25%)] px-3 py-1.5 text-xs text-[hsl(60,9%,70%)] transition hover:border-[hsl(37,92%,50%)] hover:text-[hsl(37,92%,50%)]"
             >
               <Globe className="h-3.5 w-3.5" />
-              {lang === "pt" ? "EN" : "PT"}
+              {langLabel}
             </button>
             {/* Login button */}
             <button
