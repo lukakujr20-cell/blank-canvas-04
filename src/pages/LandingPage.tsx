@@ -218,10 +218,10 @@ const copy = {
     social_sub: "Verified numbers from the first 60 days.",
     testimonials: [
       {
-        quote: "Cut €900 in waste in the first month. Now I know exactly what to order each week.",
+        quote: "Cut $900 in waste in the first month. Now I know exactly what to order each week.",
         name: "Marco Ferreira",
         place: "Bistro Central, Lisbon",
-        metric: "−€900/month",
+        metric: "−US$900/month",
       },
       {
         quote: "Closed the month without a spreadsheet for the first time in 6 years. The system did everything.",
@@ -248,7 +248,7 @@ const copy = {
       {
         name: "Monthly",
         for: "1 unit, up to 5 users",
-        price: "€97",
+        price: "US$97",
         period: "/month",
         features: ["Floor ✅", "Kitchen KDS ❌", "Smart Inventory ❌", "Financials & CMV ❌", "Multi-unit ❌", "Chat support"],
         cta: "Start Now",
@@ -257,13 +257,13 @@ const copy = {
         checkoutLinks: {
           BR: "https://buy.stripe.com/aFadR3cbDfwQ4jtetXfrW00",
           EU: "",
-          US: "",
+          US: "https://buy.stripe.com/aFadR3cbDfwQ4jtetXfrW00",
         },
       },
       {
         name: "Biannual",
         for: "1 unit, full operation",
-        price: "€197",
+        price: "US$197",
         period: "/month",
         features: ["Floor ✅", "Kitchen KDS ✅", "Smart Inventory ✅", "Financials & CMV ✅", "Multi-unit ❌", "Chat + Priority email"],
         cta: "Choose Biannual",
@@ -272,13 +272,13 @@ const copy = {
         checkoutLinks: {
           BR: "https://buy.stripe.com/8x2aER1wZdoI6rB85zfrW01",
           EU: "",
-          US: "",
+          US: "https://buy.stripe.com/8x2aER1wZdoI6rB85zfrW01",
         },
       },
       {
         name: "Annual",
         for: "Multiple units",
-        price: "€347",
+        price: "US$347",
         period: "/month",
         features: ["Floor ✅", "Kitchen KDS ✅", "Smart Inventory ✅", "Financials & CMV ✅", "Multi-unit ✅", "Dedicated account manager"],
         cta: "Talk to Sales",
@@ -287,7 +287,7 @@ const copy = {
         checkoutLinks: {
           BR: "https://buy.stripe.com/4gM00d7Vn0BWaHRbhLfrW02",
           EU: "",
-          US: "",
+          US: "https://buy.stripe.com/4gM00d7Vn0BWaHRbhLfrW02",
         },
       },
     ],
@@ -404,7 +404,8 @@ export default function LandingPage() {
   const langLabel = lang === "pt" ? "EN" : lang === "en" ? "ES" : "PT";
 
   const handlePlanCta = (checkoutLinks: { BR: string; EU: string; US: string }) => {
-    const link = checkoutLinks["BR"];
+    const regionKey = lang === "en" ? "US" : lang === "es" ? "EU" : "BR";
+    const link = checkoutLinks[regionKey] || checkoutLinks["BR"];
     if (link) {
       window.open(link, "_blank", "noopener,noreferrer");
     } else {
