@@ -92,10 +92,10 @@ const copy = {
       {
         name: "Mensal",
         for: "1 unidade, até 5 usuários",
-        price: "R$197",
+        price: "R$ 129",
         period: "/mês",
         features: ["Frente de loja ✅", "KDS Cozinha ❌", "Estoque inteligente ❌", "Financeiro e CMV ❌", "Multi-unidade ❌", "Suporte via Chat"],
-        cta: "Começar Agora",
+        cta: "Escolher Mensal",
         highlight: false,
         badge: null,
         checkoutLinks: {
@@ -107,7 +107,7 @@ const copy = {
       {
         name: "Semestral",
         for: "1 unidade, operação completa",
-        price: "R$397",
+        price: "R$ 99",
         period: "/mês",
         features: ["Frente de loja ✅", "KDS Cozinha ✅", "Estoque inteligente ✅", "Financeiro e CMV ✅", "Multi-unidade ❌", "Chat + Email prioritário"],
         cta: "Escolher Semestral",
@@ -122,10 +122,10 @@ const copy = {
       {
         name: "Anual",
         for: "Múltiplas unidades",
-        price: "R$697",
+        price: "R$ 79",
         period: "/mês",
         features: ["Frente de loja ✅", "KDS Cozinha ✅", "Estoque inteligente ✅", "Financeiro e CMV ✅", "Multi-unidade ✅", "Gerente de conta dedicado"],
-        cta: "Falar com Vendas",
+        cta: "Escolher Anual",
         highlight: false,
         badge: null,
         checkoutLinks: {
@@ -248,10 +248,10 @@ const copy = {
       {
         name: "Monthly",
         for: "1 unit, up to 5 users",
-        price: "US$97",
+        price: "US$ 59",
         period: "/month",
         features: ["Floor ✅", "Kitchen KDS ❌", "Smart Inventory ❌", "Financials & CMV ❌", "Multi-unit ❌", "Chat support"],
-        cta: "Start Now",
+        cta: "Choose Monthly",
         highlight: false,
         badge: null,
         checkoutLinks: {
@@ -261,12 +261,12 @@ const copy = {
         },
       },
       {
-        name: "Biannual",
+        name: "Semiannual",
         for: "1 unit, full operation",
-        price: "US$197",
+        price: "US$ 45",
         period: "/month",
         features: ["Floor ✅", "Kitchen KDS ✅", "Smart Inventory ✅", "Financials & CMV ✅", "Multi-unit ❌", "Chat + Priority email"],
-        cta: "Choose Biannual",
+        cta: "Choose Semiannual",
         highlight: true,
         badge: "Most popular",
         checkoutLinks: {
@@ -278,10 +278,10 @@ const copy = {
       {
         name: "Annual",
         for: "Multiple units",
-        price: "US$347",
+        price: "US$ 34",
         period: "/month",
         features: ["Floor ✅", "Kitchen KDS ✅", "Smart Inventory ✅", "Financials & CMV ✅", "Multi-unit ✅", "Dedicated account manager"],
-        cta: "Talk to Sales",
+        cta: "Choose Annual",
         highlight: false,
         badge: null,
         checkoutLinks: {
@@ -359,9 +359,9 @@ const esCopy = {
   pricing_title: "Elija el plan adecuado para su operación",
   pricing_sub: "Sin cuota de alta. Cancele cuando quiera.",
   plans: [
-    { name: "Mensual", for: "1 local, hasta 5 usuarios", price: "€97", period: "/mes", features: ["Sala ✅", "KDS Cocina ❌", "Inventario inteligente ❌", "Finanzas y CMV ❌", "Multi-local ❌", "Soporte por chat"], cta: "Empezar Ahora", highlight: false, badge: null, checkoutLinks: { BR: "https://buy.stripe.com/aFadR3cbDfwQ4jtetXfrW00", EU: "", US: "" } },
-    { name: "Semestral", for: "1 local, operación completa", price: "€197", period: "/mes", features: ["Sala ✅", "KDS Cocina ✅", "Inventario inteligente ✅", "Finanzas y CMV ✅", "Multi-local ❌", "Chat + Email prioritario"], cta: "Elegir Semestral", highlight: true, badge: "Más elegido", checkoutLinks: { BR: "https://buy.stripe.com/8x2aER1wZdoI6rB85zfrW01", EU: "", US: "" } },
-    { name: "Anual", for: "Varios locales", price: "€347", period: "/mes", features: ["Sala ✅", "KDS Cocina ✅", "Inventario inteligente ✅", "Finanzas y CMV ✅", "Multi-local ✅", "Gestor de cuenta dedicado"], cta: "Hablar con Ventas", highlight: false, badge: null, checkoutLinks: { BR: "https://buy.stripe.com/4gM00d7Vn0BWaHRbhLfrW02", EU: "", US: "" } },
+    { name: "Mensual", for: "1 local, hasta 5 usuarios", price: "€ 59", period: "/mes", features: ["Sala ✅", "KDS Cocina ❌", "Inventario inteligente ❌", "Finanzas y CMV ❌", "Multi-local ❌", "Soporte por chat"], cta: "Elegir Mensual", highlight: false, badge: null, checkoutLinks: { BR: "https://buy.stripe.com/aFadR3cbDfwQ4jtetXfrW00", EU: "", US: "" } },
+    { name: "Semestral", for: "1 local, operación completa", price: "€ 45", period: "/mes", features: ["Sala ✅", "KDS Cocina ✅", "Inventario inteligente ✅", "Finanzas y CMV ✅", "Multi-local ❌", "Chat + Email prioritario"], cta: "Elegir Semestral", highlight: true, badge: "Más elegido", checkoutLinks: { BR: "https://buy.stripe.com/8x2aER1wZdoI6rB85zfrW01", EU: "", US: "" } },
+    { name: "Anual", for: "Varios locales", price: "€ 34", period: "/mes", features: ["Sala ✅", "KDS Cocina ✅", "Inventario inteligente ✅", "Finanzas y CMV ✅", "Multi-local ✅", "Gestor de cuenta dedicado"], cta: "Elegir Anual", highlight: false, badge: null, checkoutLinks: { BR: "https://buy.stripe.com/4gM00d7Vn0BWaHRbhLfrW02", EU: "", US: "" } },
   ],
   faq_title: "Preguntas frecuentes",
   faqs: [
